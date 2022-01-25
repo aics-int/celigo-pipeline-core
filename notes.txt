@@ -1,0 +1,25 @@
+# Steps
+#   1) Create temp folder on slurm node 
+#   2) Copy Celigo Image to temp folder 
+
+#   3) 4x Downsampling of Celigo image 
+
+#   4) Run Ilastik on Celigo Image (Bash Script)
+#    - (output) need to write out file list 
+
+#   5) Run Cell Profiler on celigo image (Bash Script)
+
+#       Example filelsit: "Z:\aics\microscopy\CellProfiler_4.1.3_Testing\InputImages\filelist.txt"
+#       Headless Example: "Z:\aics\microscopy\CellProfiler_4.1.3_Testing\headless.txt"
+
+
+# 1) need to paramterzie Ilastik cli
+# 2) need to pass in diffrent Ilastik project files
+# 3) need to generate temp folder on the slurm node that you are on 
+
+
+
+
+# what needs to be uploaded : raw Celigo image (FMS), 
+#                             PNG output of cellprofiler (FMS),
+#                             output metrics (Decide where) postgress

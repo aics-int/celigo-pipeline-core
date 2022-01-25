@@ -8,4 +8,8 @@
 conda activate /allen/aics/apps/prod/venvs/cellprofiler/v4.1.3
 
 
+# run CellProfiler 
 
+cellprofiler -r -c -p /allen/aics/microscopy/CellProfiler_4.1.3_Testing/96_well_colony_pipeline.cppipe
+--file-list = /allen/aics/microscopy/CellProfiler_4.1.3_Testing/InputImages/filelist.txt 
+-o /allen/aics/microscopy/CellProfiler_4.1.3_Testing/ClusterTestOutput

@@ -1,8 +1,10 @@
-import subprocess
+
 import os
-import tempfile
 from pathlib import Path
 import shutil
+import subprocess
+import tempfile
+
 from skimage.transform import rescale
 from aicsimageio import AICSImage
 from aicsimageio.writers import OmeTiffWriter
@@ -24,7 +26,7 @@ class CeligoSingleImageCore:
     #
     # FUNCTIONALITY: This method simply creates a temporary working directory. 
     #
-    # Output: Returns a path to the temporary directory.
+    # OUTPUT: Returns a path to the temporary directory.
     #
     '''
     def create_temp_folder(
@@ -51,7 +53,7 @@ class CeligoSingleImageCore:
     ) -> os.PathLike:
 
         shutil.copyfile(raw_image_path, f'{output_dir}/{raw_image_path.name}')
-        return f'{output_dir}/{raw_image_path.name}'
+        return Path(f'{output_dir}/{raw_image_path.name}')
  
 
     '''---------------------------------------------------------------------------------------------------
@@ -68,7 +70,7 @@ class CeligoSingleImageCore:
         scale_factor: int
     ) -> os.PathLike:
 
-        image  = AICSImage(image_path)
+        image = AICSImage(image_path)
         image_rescaled = rescale(image.get_image_data(), 1 / scale_factor, anti_aliasing=False)
         image_rescaled_path = image_path.parent / f"{image_path.with_suffix('').name}_rescale.ome.tiff"
         OmeTiffWriter.save(image_rescaled, image_rescaled_path, dim_order= image.dims.order)
@@ -99,11 +101,12 @@ class CeligoSingleImageCore:
         #SBATCH --time=9-24:00:00
         #SBATCH --partition=aics_cpu_general
         #SBATCH --mem=50G
+
         #activate Conda
         . /allen/aics/apps/prod/anaconda/Anaconda3-5.1.0/bin/activate
+
         #activate Ilastik conda environment
         conda activate /allen/aics/apps/prod/venvs/cellprofiler/v4.1.3
-
 
         # run Ilastik
         /allen/aics/apps/prod/ilastik/ilastik-1.3.3post3-Linux/run_ilastik.sh 
@@ -120,7 +123,7 @@ class CeligoSingleImageCore:
         # Creates filelist.txt file with the path to the downsampled image 
         # and the path to the probability map. This file (filelist.txt) is needed
         # for filelist_path for run_cellprofiler
-        with open (output_dir / 'filelist.txt', 'w') as rfl:
+        with open(output_dir / 'filelist.txt', 'w') as rfl:
             rfl.write(str(image_path))
             rfl.write(str(image_path.parent / f"{image_path.with_suffix('').with_suffix('').name}_probabilities.tiff"))
 
@@ -147,13 +150,15 @@ class CeligoSingleImageCore:
     ) -> os.PathLike:
 
         # Creates a bash script to run CellProfiler and output a directory of analytics
-        with open ({output_dir} / 'cellprofiler.sh', 'w') as rsh:
+        with open(output_dir / 'cellprofiler.sh', 'w') as rsh:
             rsh.write(f'''#!/bin/bash
         #SBATCH --time=9-24:00:00
         #SBATCH --partition=aics_cpu_general
         #SBATCH --mem=50G
+
         #activate Conda
         . /allen/aics/apps/prod/anaconda/Anaconda3-5.1.0/bin/activate
+
         #activate cellprofiler conda environment
         conda activate /allen/aics/apps/prod/venvs/cellprofiler/v4.1.3
         
@@ -166,3 +171,4 @@ class CeligoSingleImageCore:
         subprocess.call(output_dir / 'cellprofiler.sh')
 
         return output_dir / 'cell_profiler_outputs'
+        

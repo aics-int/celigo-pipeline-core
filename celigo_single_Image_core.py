@@ -21,14 +21,14 @@ class CeligoSingleImageCore:
 
 # Output_dir is the temporary folder 
 
-    '''----------------------------------------------------------------------------------------------------
-    # PARAMETERS: None.
-    #
-    # FUNCTIONALITY: This method simply creates a temporary working directory. 
-    #
-    # OUTPUT: Returns a path to the temporary directory.
-    #
-    '''
+    """
+    PARAMETERS: None.
+    
+    FUNCTIONALITY: This method simply creates a temporary working directory. 
+    
+    OUTPUT: Returns a path to the temporary directory.
+    
+    """
     def create_temp_folder(
         self
     ) -> os.PathLike:
@@ -37,15 +37,15 @@ class CeligoSingleImageCore:
             temp_dir_path = Path(temp_dir)
         return temp_dir_path
 
-    '''----------------------------------------------------------------------------------------------------
-    # PARAMETERS: Takes in a path to a directory (raw_image_path) to copy from path to a directory to 
-    # paste to (output_dir).
-    #
-    # FUNCTIONALITY: This method takes an existing image at a given location and clones it to 
-    # somewhere else.
-    #
-    # OUTPUT: Returns a path to the cloned image.
-    '''
+    """
+    PARAMETERS: Takes in a path to a directory (raw_image_path) to copy from path to a directory to 
+    paste to (output_dir).
+    
+    FUNCTIONALITY: This method takes an existing image at a given location and clones it to 
+    somewhere else.
+    
+    OUTPUT: Returns a path to the cloned image.
+    """
     def copy_celigo_image(
         self,
         raw_image_path: os.PathLike,
@@ -56,14 +56,14 @@ class CeligoSingleImageCore:
         return Path(f'{output_dir}/{raw_image_path.name}')
  
 
-    '''---------------------------------------------------------------------------------------------------
-    # PARAMETERS: Takes in a path to an image (image_path) and a scaling factor (scale_factor).
-    #
-    # FUNCTIONALITY: This method takes an existing image and creates a copy of the image scaled by a given 
-    # quantity/magnification. Ex. 4 --> 1/4 size.
-    #
-    # OUTPUT: Returns a path to the resized image.
-    '''
+    """
+    PARAMETERS: Takes in a path to an image (image_path) and a scaling factor (scale_factor).
+    
+    FUNCTIONALITY: This method takes an existing image and creates a copy of the image scaled by a given 
+    quantity/magnification. Ex. 4 --> 1/4 size.
+    
+    OUTPUT: Returns a path to the resized image.
+    """
     def downsample(
         self,
         image_path: os.PathLike,
@@ -77,17 +77,17 @@ class CeligoSingleImageCore:
         return image_rescaled_path
 
 
-    '''---------------------------------------------------------------------------------------------------
-    # PARAMETERS: Takes in a path to an image (image_path) and an output directory (output_dir).
-    #
-    # FUNCTIONALITY: This method takes an existing image either scaled or unscaled and creates a probability 
-    # map of [I DON'T KNOW]. It does this by creating a bash script, given above parameters, running said script 
-    # on the slurm cluster in a pre-existing virtual environment and then generating a list of pertinent files
-    # called filelist.txt (containing the path to the image and to the probability map). This file is necessary
-    # to run CellProfiler.
-    #
-    # OUTPUT: Returns a path to the filelist.
-    '''
+    """
+    PARAMETERS: Takes in a path to an image (image_path) and an output directory (output_dir).
+    
+    FUNCTIONALITY: This method takes an existing image either scaled or unscaled and creates a probability 
+    map of [I DON'T KNOW]. It does this by creating a bash script, given above parameters, running said script 
+    on the slurm cluster in a pre-existing virtual environment and then generating a list of pertinent files
+    called filelist.txt (containing the path to the image and to the probability map). This file is necessary
+    to run CellProfiler.
+    
+    OUTPUT: Returns a path to the filelist.
+    """
     def run_ilastik(
         self,
         image_path: os.PathLike,
@@ -102,10 +102,10 @@ class CeligoSingleImageCore:
         #SBATCH --partition=aics_cpu_general
         #SBATCH --mem=50G
 
-        #activate Conda
+        # activate Conda
         . /allen/aics/apps/prod/anaconda/Anaconda3-5.1.0/bin/activate
 
-        #activate Ilastik conda environment
+        # activate Ilastik conda environment
         conda activate /allen/aics/apps/prod/venvs/cellprofiler/v4.1.3
 
         # run Ilastik
@@ -131,18 +131,17 @@ class CeligoSingleImageCore:
         return output_dir / 'filelist.txt'
 
 
+    """
+    PARAMETERS: Takes in a path to a filelist.txt file (filelist_path) and an output directory (output_dir).
+    Output: Returns a path to the Resized Image 
     
-    '''---------------------------------------------------------------------------------------------------
-    # PARAMETERS: Takes in a path to a filelist.txt file (filelist_path) and an output directory (output_dir).
-    # Output: Returns a path to the Resized Image 
-    #
-    # FUNCTIONALITY: This method takes aa path to a filelist.txt file and creates a directory with a myriad of
-    # files that show analytics for the pipeline. It does this by creating a bash script, given above parameters, 
-    # running said script on the slurm cluster in a pre-existing virtual environment. This is the endpoint of a
-    # single image processing.
-    #
-    # OUTPUT: Returns a path to the output directory.
-    '''
+    FUNCTIONALITY: This method takes aa path to a filelist.txt file and creates a directory with a myriad of
+    files that show analytics for the pipeline. It does this by creating a bash script, given above parameters, 
+    running said script on the slurm cluster in a pre-existing virtual environment. This is the endpoint of a
+    single image processing.
+    
+    OUTPUT: Returns a path to the output directory.
+    """
     def run_cellprofiler(
         self,
         filelist_path: os.PathLike,
@@ -156,10 +155,10 @@ class CeligoSingleImageCore:
         #SBATCH --partition=aics_cpu_general
         #SBATCH --mem=50G
 
-        #activate Conda
+        # activate Conda
         . /allen/aics/apps/prod/anaconda/Anaconda3-5.1.0/bin/activate
 
-        #activate cellprofiler conda environment
+        # activate cellprofiler conda environment
         conda activate /allen/aics/apps/prod/venvs/cellprofiler/v4.1.3
         
         # run CellProfiler

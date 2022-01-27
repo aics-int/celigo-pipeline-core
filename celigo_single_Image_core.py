@@ -1,5 +1,3 @@
-
-import os
 from pathlib import Path
 import shutil
 import subprocess
@@ -9,66 +7,66 @@ from skimage.transform import rescale
 from aicsimageio import AICSImage
 from aicsimageio.writers import OmeTiffWriter
 
-"""
-This Class provides utility functions for the Celigo pipeline to prepare single images for:
+
+class CeligoSingleImageCore:
+    """
+    This Class provides utility functions for the Celigo pipeline to prepare single images for:
 
     1) Ilastik Processing
 
     2) Cell Profiler Processing
 
-"""
-class CeligoSingleImageCore:
+    """
 
 # Output_dir is the temporary folder 
 
-    """
-    PARAMETERS: None.
-    
-    FUNCTIONALITY: This method simply creates a temporary working directory. 
-    
-    OUTPUT: Returns a path to the temporary directory.
-    
-    """
+    @staticmethod
     def create_temp_folder(
-        self
-    ) -> os.PathLike:
-
+    ) -> Path:
+        """
+        PARAMETERS: None.
+        
+        FUNCTIONALITY: This method simply creates a temporary working directory. 
+        
+        :return: Returns a path to the temporary directory.
+        
+        """
         with tempfile.TemporaryDirectory() as temp_dir:
             temp_dir_path = Path(temp_dir)
         return temp_dir_path
 
-    """
-    PARAMETERS: Takes in a path to a directory (raw_image_path) to copy from path to a directory to 
-    paste to (output_dir).
-    
-    FUNCTIONALITY: This method takes an existing image at a given location and clones it to 
-    somewhere else.
-    
-    OUTPUT: Returns a path to the cloned image.
-    """
+    @staticmethod
     def copy_celigo_image(
-        self,
-        raw_image_path: os.PathLike,
-        output_dir: os.PathLike
-    ) -> os.PathLike:
+        raw_image_path: Path,
+        output_dir: Path
+    ) -> Path:
+        """
+        PARAMETERS: Takes in a path to a directory (raw_image_path) to copy from path to a directory to 
+        paste to (output_dir).
+        
+        FUNCTIONALITY: This method takes an existing image at a given location and clones it to 
+        somewhere else.
+        
+        :return: Returns a path to the cloned image.
+        """
 
         shutil.copyfile(raw_image_path, f'{output_dir}/{raw_image_path.name}')
         return Path(f'{output_dir}/{raw_image_path.name}')
  
 
-    """
-    PARAMETERS: Takes in a path to an image (image_path) and a scaling factor (scale_factor).
-    
-    FUNCTIONALITY: This method takes an existing image and creates a copy of the image scaled by a given 
-    quantity/magnification. Ex. 4 --> 1/4 size.
-    
-    OUTPUT: Returns a path to the resized image.
-    """
+    @staticmethod
     def downsample(
-        self,
-        image_path: os.PathLike,
+        image_path: Path,
         scale_factor: int
-    ) -> os.PathLike:
+    ) -> Path:
+        """
+        PARAMETERS: Takes in a path to an image (image_path) and a scaling factor (scale_factor).
+        
+        FUNCTIONALITY: This method takes an existing image and creates a copy of the image scaled by a given 
+        quantity/magnification. Ex. 4 --> 1/4 size.
+        
+        :return: Returns a path to the resized image.
+        """
 
         image = AICSImage(image_path)
         image_rescaled = rescale(image.get_image_data(), 1 / scale_factor, anti_aliasing=False)
@@ -77,26 +75,25 @@ class CeligoSingleImageCore:
         return image_rescaled_path
 
 
-    """
-    PARAMETERS: Takes in a path to an image (image_path) and an output directory (output_dir).
-    
-    FUNCTIONALITY: This method takes an existing image either scaled or unscaled and creates a probability 
-    map of [I DON'T KNOW]. It does this by creating a bash script, given above parameters, running said script 
-    on the slurm cluster in a pre-existing virtual environment and then generating a list of pertinent files
-    called filelist.txt (containing the path to the image and to the probability map). This file is necessary
-    to run CellProfiler.
-    
-    OUTPUT: Returns a path to the filelist.
-    """
+    @staticmethod
     def run_ilastik(
-        self,
-        image_path: os.PathLike,
-        output_dir: os.PathLike    
-    ) -> os.PathLike:
-
+        image_path: Path,
+        output_dir: Path    
+    ) -> Path:
+        """
+        PARAMETERS: Takes in a path to an image (image_path) and an output directory (output_dir).
+        
+        FUNCTIONALITY: This method takes an existing image either scaled or unscaled and creates a probability 
+        map of [I DON'T KNOW]. It does this by creating a bash script, given above parameters, running said script 
+        on the slurm cluster in a pre-existing virtual environment and then generating a list of pertinent files
+        called filelist.txt (containing the path to the image and to the probability map). This file is necessary
+        to run CellProfiler.
+        
+        :return: Returns a path to the filelist.
+        """
 
         # Creates a bash script to run Ilastik and output a probability map
-        with open ({output_dir} / 'ilastik.sh', 'w') as rsh:
+        with open (output_dir / 'ilastik.sh', 'w') as rsh:
             rsh.write(f'''#!/bin/bash
         #SBATCH --time=9-24:00:00
         #SBATCH --partition=aics_cpu_general
@@ -131,22 +128,23 @@ class CeligoSingleImageCore:
         return output_dir / 'filelist.txt'
 
 
-    """
-    PARAMETERS: Takes in a path to a filelist.txt file (filelist_path) and an output directory (output_dir).
-    Output: Returns a path to the Resized Image 
-    
-    FUNCTIONALITY: This method takes aa path to a filelist.txt file and creates a directory with a myriad of
-    files that show analytics for the pipeline. It does this by creating a bash script, given above parameters, 
-    running said script on the slurm cluster in a pre-existing virtual environment. This is the endpoint of a
-    single image processing.
-    
-    OUTPUT: Returns a path to the output directory.
-    """
+    @staticmethod
     def run_cellprofiler(
-        self,
-        filelist_path: os.PathLike,
-        output_dir: os.PathLike    
-    ) -> os.PathLike:
+        filelist_path: Path,
+        output_dir: Path    
+    ) -> Path:
+
+        """
+        PARAMETERS: Takes in a path to a filelist.txt file (filelist_path) and an output directory (output_dir).
+        Output: Returns a path to the Resized Image 
+        
+        FUNCTIONALITY: This method takes aa path to a filelist.txt file and creates a directory with a myriad of
+        files that show analytics for the pipeline. It does this by creating a bash script, given above parameters, 
+        running said script on the slurm cluster in a pre-existing virtual environment. This is the endpoint of a
+        single image processing.
+        
+        :return: Returns a path to the output directory.
+        """
 
         # Creates a bash script to run CellProfiler and output a directory of analytics
         with open(output_dir / 'cellprofiler.sh', 'w') as rsh:

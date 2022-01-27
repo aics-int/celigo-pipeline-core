@@ -18,31 +18,18 @@ class CeligoSingleImageCore:
 
     """
 
-# Output_dir is the temporary folder 
+    def __init__(self):
+        self.temp_dir = tempfile.TemporaryDirectory()
+        self.working_dir = Path(self.temp_dir.name)
 
-    @staticmethod
-    def create_temp_folder(
-    ) -> Path:
-        """
-        PARAMETERS: None.
-        
-        FUNCTIONALITY: This method simply creates a temporary working directory. 
-        
-        :return: Returns a path to the temporary directory.
-        
-        """
-        with tempfile.TemporaryDirectory() as temp_dir:
-            temp_dir_path = Path(temp_dir)
-        return temp_dir_path
 
-    @staticmethod
     def copy_celigo_image(
-        raw_image_path: Path,
-        output_dir: Path
+        self,
+        raw_image_path: Path
     ) -> Path:
         """
         PARAMETERS: Takes in a path to a directory (raw_image_path) to copy from path to a directory to 
-        paste to (output_dir).
+        paste to (self.working_dir).
         
         FUNCTIONALITY: This method takes an existing image at a given location and clones it to 
         somewhere else.
@@ -50,12 +37,12 @@ class CeligoSingleImageCore:
         :return: Returns a path to the cloned image.
         """
 
-        shutil.copyfile(raw_image_path, f'{output_dir}/{raw_image_path.name}')
-        return Path(f'{output_dir}/{raw_image_path.name}')
+        shutil.copyfile(raw_image_path, f'{self.working_dir}/{raw_image_path.name}')
+        return Path(f'{self.working_dir}/{raw_image_path.name}')
  
 
-    @staticmethod
     def downsample(
+        self,
         image_path: Path,
         scale_factor: int
     ) -> Path:
@@ -75,13 +62,12 @@ class CeligoSingleImageCore:
         return image_rescaled_path
 
 
-    @staticmethod
     def run_ilastik(
-        image_path: Path,
-        output_dir: Path    
+        self,
+        image_path: Path
     ) -> Path:
         """
-        PARAMETERS: Takes in a path to an image (image_path) and an output directory (output_dir).
+        PARAMETERS: Takes in a path to an image (image_path) and an output directory (self.working_dir).
         
         FUNCTIONALITY: This method takes an existing image either scaled or unscaled and creates a probability 
         map of [I DON'T KNOW]. It does this by creating a bash script, given above parameters, running said script 
@@ -93,7 +79,7 @@ class CeligoSingleImageCore:
         """
 
         # Creates a bash script to run Ilastik and output a probability map
-        with open (output_dir / 'ilastik.sh', 'w') as rsh:
+        with open (self.working_dir / 'ilastik.sh', 'w') as rsh:
             rsh.write(f'''#!/bin/bash
         #SBATCH --time=9-24:00:00
         #SBATCH --partition=aics_cpu_general
@@ -112,30 +98,28 @@ class CeligoSingleImageCore:
         --output_format=tiff 
         --export_source="Probabilities" 
         --raw_data {str(image_path)}
-        --output_filename_format={str(output_dir)}/{{nickname}}_probabilities.tiff ''')
+        --output_filename_format={str(self.working_dir)}/{{nickname}}_probabilities.tiff ''')
 
         # This will change to submission to slurm
-        subprocess.call(output_dir / 'ilastik.sh')
+        subprocess.call(self.working_dir / 'ilastik.sh')
 
         # Creates filelist.txt file with the path to the downsampled image 
         # and the path to the probability map. This file (filelist.txt) is needed
         # for filelist_path for run_cellprofiler
-        with open(output_dir / 'filelist.txt', 'w') as rfl:
+        with open(self.working_dir / 'filelist.txt', 'w') as rfl:
             rfl.write(str(image_path))
             rfl.write(str(image_path.parent / f"{image_path.with_suffix('').with_suffix('').name}_probabilities.tiff"))
 
         #returns path to filelist 
-        return output_dir / 'filelist.txt'
+        return self.working_dir / 'filelist.txt'
 
-
-    @staticmethod
     def run_cellprofiler(
-        filelist_path: Path,
-        output_dir: Path    
+        self,
+        filelist_path: Path
     ) -> Path:
 
         """
-        PARAMETERS: Takes in a path to a filelist.txt file (filelist_path) and an output directory (output_dir).
+        PARAMETERS: Takes in a path to a filelist.txt file (filelist_path) and an output directory (self.working_dir).
         Output: Returns a path to the Resized Image 
         
         FUNCTIONALITY: This method takes aa path to a filelist.txt file and creates a directory with a myriad of
@@ -147,7 +131,7 @@ class CeligoSingleImageCore:
         """
 
         # Creates a bash script to run CellProfiler and output a directory of analytics
-        with open(output_dir / 'cellprofiler.sh', 'w') as rsh:
+        with open(self.working_dir / 'cellprofiler.sh', 'w') as rsh:
             rsh.write(f'''#!/bin/bash
         #SBATCH --time=9-24:00:00
         #SBATCH --partition=aics_cpu_general
@@ -162,10 +146,10 @@ class CeligoSingleImageCore:
         # run CellProfiler
         cellprofiler -r -c -p /allen/aics/microscopy/CellProfiler_4.1.3_Testing/96_well_colony_pipeline.cppipe
         --file-list = {str(filelist_path)} 
-        -o {str(output_dir / 'cell_profiler_outputs')}''')
+        -o {str(self.working_dir / 'cell_profiler_outputs')}''')
 
         #This will change to submission to slurm
-        subprocess.call(output_dir / 'cellprofiler.sh')
+        subprocess.call(self.working_dir / 'cellprofiler.sh')
 
-        return output_dir / 'cell_profiler_outputs'
+        return self.working_dir / 'cell_profiler_outputs'
         

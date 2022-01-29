@@ -1,3 +1,4 @@
+from jinja2 import Environment, FileSystemLoader
 from pathlib import Path
 import shutil
 import subprocess
@@ -9,6 +10,7 @@ from aicsimageio.writers import OmeTiffWriter
 
 
 class CeligoSingleImageCore:
+
     """
     This Class provides utility functions for the Celigo pipeline to prepare single images for:
 
@@ -17,6 +19,7 @@ class CeligoSingleImageCore:
     2) Cell Profiler Processing
 
     """
+
     filelist = Path('') # I am not sure if this is the correct initialzation for this 
 
     def __init__(self, raw_image_path):
@@ -44,6 +47,7 @@ class CeligoSingleImageCore:
 
 
     def run_ilastik(self):
+
         """
         FUNCTIONALITY: This method takes an existing image either scaled or unscaled and creates a probability 
         map of [I DON'T KNOW]. It does this by creating a bash script, given above parameters, running said script 
@@ -53,40 +57,28 @@ class CeligoSingleImageCore:
         
         :return: Returns a path to the filelist.
         """
+        # Parameters to input to bash script template 
+        script_config = {
+            'image_path': str(self.image_path),
+            'output_name': str(self.image_path / '_probabilities.tiff')
+        }
 
-        # Creates a bash script to run Ilastik and output a probability map
-        with open (self.working_dir / 'ilastik.sh', 'w') as rsh:
-            rsh.write(f'''#!/bin/bash
-        #SBATCH --time=9-24:00:00
-        #SBATCH --partition=aics_cpu_general
-        #SBATCH --mem=50G
+        # Generates script_body from existing templates.
+        jinja_env = Environment(loader=FileSystemLoader('Z:/aics/microscopy/brian_whitney/templates'))
+        script_body = jinja_env.get_template('ilastik_template.j2').render(script_config)
 
-        # activate Conda
-        . /allen/aics/apps/prod/anaconda/Anaconda3-5.1.0/bin/activate
+        # Creates bash script locally.
+        with open(self.working_dir / 'run_ilastik.sh', 'w') as rsh:
+            rsh.write(script_body)
 
-        # activate Ilastik conda environment
-        conda activate /allen/aics/apps/prod/venvs/cellprofiler/v4.1.3
+        # Runs ilastik on slurm
+        subprocess.run(['sbatch', f'{str(self.working_dir)}/run_cellprofiler.sh'], check = True)
 
-        # run Ilastik
-        /allen/aics/apps/prod/ilastik/ilastik-1.3.3post3-Linux/run_ilastik.sh 
-        --headless 
-        --project="/allen/aics/microscopy/CellProfiler_4.1.3_Testing/ballingandlifting.ilp" 
-        --output_format=tiff 
-        --export_source="Probabilities" 
-        --raw_data {str(self.image_path)}
-        --output_filename_format={str(self.working_dir)}/{{nickname}}_probabilities.tiff ''')
-
-        # This will change to submission to slurm
-        subprocess.call(self.working_dir / 'ilastik.sh')
-
-        # Creates filelist.txt file with the path to the downsampled image 
-        # and the path to the probability map. This file (filelist.txt) is needed
-        # for filelist_path for run_cellprofiler
+        # Creates filelist.txt
         with open(self.working_dir / 'filelist.txt', 'w') as rfl:
             rfl.write(str(self.image_path))
             rfl.write(str(self.image_path.parent / f"{self.image_path.with_suffix('').with_suffix('').name}_probabilities.tiff"))
 
-        # returns path to filelist 
         self.filelist = self.working_dir / 'filelist.txt'
 
     def run_cellprofiler(self) -> Path:
@@ -100,26 +92,23 @@ class CeligoSingleImageCore:
         :return: Returns a path to the output directory.
         """
 
-        # Creates a bash script to run CellProfiler and output a directory of analytics
-        with open(self.working_dir / 'cellprofiler.sh', 'w') as rsh:
-            rsh.write(f'''#!/bin/bash
-        #SBATCH --time=9-24:00:00
-        #SBATCH --partition=aics_cpu_general
-        #SBATCH --mem=50G
+        # Parameters to input to bash script template.
+        script_config = {
+            'filelist_path': str(self.filelist),
+            'output_dir': str(self.working_dir / 'cell_profiler_outputs')
+        }
 
-        # activate Conda
-        . /allen/aics/apps/prod/anaconda/Anaconda3-5.1.0/bin/activate
+        # Generates script_body from existing templates.
+        jinja_env = Environment(loader=FileSystemLoader('Z:/aics/microscopy/brian_whitney/templates'))
+        script_body = jinja_env.get_template('cellprofiler_template.j2').render(script_config)
 
-        # activate cellprofiler conda environment
-        conda activate /allen/aics/apps/prod/venvs/cellprofiler/v4.1.3
-        
-        # run CellProfiler
-        cellprofiler -r -c -p /allen/aics/microscopy/CellProfiler_4.1.3_Testing/96_well_colony_pipeline.cppipe
-        --file-list = {str(self.filelist_path)} 
-        -o {str(self.working_dir / 'cell_profiler_outputs')}''')
+        # Creates bash script locally.
+        with open(self.working_dir / 'run_cellprofiler.sh', 'w') as rsh:
+            rsh.write(script_body)
 
-        #This will change to submission to slurm
-        subprocess.call(self.working_dir / 'cellprofiler.sh')
+        # Runs cellprofiler on slurm
+        subprocess.run(['sbatch', f'{str(self.working_dir)}/run_cellprofiler.sh'], check = True)
 
+        # Returns path to directory of cellprofiler outputs
         return self.working_dir / 'cell_profiler_outputs'
         

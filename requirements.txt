@@ -1,8 +1,0 @@
-    "jinja2",
-    "pathlib",
-    "shutil",
-    "subprocess",
-    "tempfile",
-    "skimage.transform",
-    "aicsimageio",
-    "aicsimageio.writers"

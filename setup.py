@@ -24,18 +24,22 @@ requirements = [
 ]
 
 setup(name=PACKAGE_NAME,
-      version=MODULE_VERSION,
-      description='later',
-      long_description= readme,
-      author='Brian Whitney',
-      author_email='brian.whitney@alleninstitute.org',
-      license='Allen Institute Software License'
+    version=MODULE_VERSION,
+    description='later',
+    long_description= readme,
+    author='Brian Whitney',
+    author_email='brian.whitney@alleninstitute.org',
+    license='Allen Institute Software License',
+    packages=find_packages(exclude=["tests", "*.tests", "*.tests.*"]),
+    classifiers=[
+        "Development Status :: 2 - Pre-Alpha",
+        "Intended Audience :: Developers",
+        "License :: Free for non-commercial use",
+        "Natural Language :: English",
+        "Programming Language :: Python :: 3.8",
+        "Programming Language :: Python :: 3.9",
+    ]
       )
-
-
-
-
-
 
 
 """
@@ -48,7 +52,6 @@ import tempfile
 from skimage.transform import rescale
 from aicsimageio import AICSImage
 from aicsimageio.writers import OmeTiffWriter
-
 
 class CeligoSingleImageCore:
 """

@@ -35,8 +35,6 @@ class CeligoSingleImageCore:
         
         FUNCTIONALITY: This method takes an existing image and creates a copy of the image scaled by a given 
         quantity/magnification. Ex. 4 --> 1/4 size.
-        
-        :return: Returns a path to the resized image.
         """
 
         image = AICSImage(self.image_path)
@@ -54,8 +52,6 @@ class CeligoSingleImageCore:
         on the slurm cluster in a pre-existing virtual environment and then generating a list of pertinent files
         called filelist.txt (containing the path to the image and to the probability map). This file is necessary
         to run CellProfiler.
-        
-        :return: Returns a path to the filelist.
         """
         # Parameters to input to bash script template 
         script_config = {
@@ -77,6 +73,8 @@ class CeligoSingleImageCore:
         # Creates filelist.txt
         with open(self.working_dir / 'filelist.txt', 'w') as rfl:
             rfl.write(str(self.image_path))
+
+            # Have to use .with_suffix twice becasue of the .ome.tiff file suffix
             rfl.write(str(self.image_path.parent / f"{self.image_path.with_suffix('').with_suffix('').name}_probabilities.tiff"))
 
         self.filelist = self.working_dir / 'filelist.txt'
@@ -111,4 +109,3 @@ class CeligoSingleImageCore:
 
         # Returns path to directory of cellprofiler outputs
         return self.working_dir / 'cell_profiler_outputs'
-        

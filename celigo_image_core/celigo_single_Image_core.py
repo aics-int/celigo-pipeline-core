@@ -25,8 +25,9 @@ class CeligoSingleImageCore:
     def __init__(self, raw_image_path):
         self.temp_dir = tempfile.TemporaryDirectory()
         self.working_dir = Path(self.temp_dir.name)
-        shutil.copyfile(raw_image_path, f'{self.working_dir}/{raw_image_path.name}')
-        self.image_path =  Path(f'{self.working_dir}/{raw_image_path.name}')
+        self.raw_image_path = Path(raw_image_path)
+        shutil.copyfile(self.raw_image_path, f'{self.working_dir}/{self.raw_image_path.name}')
+        self.image_path =  Path(f'{self.working_dir}/{self.raw_image_path.name}')
 
 
     def downsample(self, scale_factor: int):

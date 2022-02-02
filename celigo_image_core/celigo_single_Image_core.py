@@ -18,14 +18,14 @@ class CeligoSingleImageCore:
 
     2) Cell Profiler Processing
 
+    Given its large processing needs it is set up to run on slurm
+
     """
 
-    filelist = Path('') # I am not sure if this is the correct initialzation for this 
-
-    def __init__(self, raw_image_path):
+    def __init__(self, raw_image: str):
         self.temp_dir = tempfile.TemporaryDirectory()
         self.working_dir = Path(self.temp_dir.name)
-        self.raw_image_path = Path(raw_image_path)
+        self.raw_image_path = Path(raw_image)
         shutil.copyfile(self.raw_image_path, f'{self.working_dir}/{self.raw_image_path.name}')
         self.image_path =  Path(f'{self.working_dir}/{self.raw_image_path.name}')
 

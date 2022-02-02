@@ -1,11 +1,10 @@
 # Blank
 
-Description for later 
+    This package provides utility functions for the Celigo pipeline to prepare single images for:
 
-## How to Build
+    1) Ilastik Processing
 
-The default project layout and build steps are discussed in [BUILD.md](BUILD.md). Some of the information
-is related to the AICS build process.
+    2) Cell Profiler Processing
 
 ## Legal documents
 

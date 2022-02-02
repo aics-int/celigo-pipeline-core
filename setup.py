@@ -13,14 +13,10 @@ with open("README.md") as readme_file:
 
 
 requirements = [          
-    "jinja2",
-    "pathlib",
-    "shutil",
-    "subprocess",
-    "tempfile",
-    "skimage.transform",
-    "aicsimageio",
-    "aicsimageio.writers"
+    "jinja2>=3.0.0",
+    "skimage.transform>= 0.19.0",
+    "aicsimageio>=4.0.0",
+    "aicsimageio.writers>=4.0.0"
 ]
 
 setup(name=PACKAGE_NAME,
@@ -31,6 +27,7 @@ setup(name=PACKAGE_NAME,
     author_email='brian.whitney@alleninstitute.org',
     license='Allen Institute Software License',
     packages=find_packages(exclude=["tests", "*.tests", "*.tests.*"]),
+    install_requires=requirements,
     classifiers=[
         "Development Status :: 2 - Pre-Alpha",
         "Intended Audience :: Developers",

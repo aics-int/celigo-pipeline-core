@@ -1,4 +1,4 @@
-from jinja2 import Environment, FileSystemLoader
+from jinja2 import Environment, FileSystemLoader, PackageLoader
 from pathlib import Path
 import shutil
 import subprocess
@@ -61,7 +61,7 @@ class CeligoSingleImageCore:
         }
 
         # Generates script_body from existing templates.
-        jinja_env = Environment(loader=FileSystemLoader('Z:/aics/microscopy/brian_whitney/templates'))
+        jinja_env = Environment(loader=PackageLoader(package_path= 'templates'))
         script_body = jinja_env.get_template('ilastik_template.j2').render(script_config)
 
         # Creates bash script locally.
@@ -98,7 +98,7 @@ class CeligoSingleImageCore:
         }
 
         # Generates script_body from existing templates.
-        jinja_env = Environment(loader=FileSystemLoader('Z:/aics/microscopy/brian_whitney/templates'))
+        jinja_env = Environment(loader=PackageLoader(package_path= 'templates'))
         script_body = jinja_env.get_template('cellprofiler_template.j2').render(script_config)
 
         # Creates bash script locally.

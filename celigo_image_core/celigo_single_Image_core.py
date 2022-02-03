@@ -3,6 +3,7 @@ from pathlib import Path
 import shutil
 import subprocess
 import tempfile
+import os
 
 from skimage.transform import rescale
 from aicsimageio import AICSImage
@@ -22,13 +23,16 @@ class CeligoSingleImageCore:
 
     """
 
-    def __init__(self, raw_image: str):
-        self.temp_dir = tempfile.TemporaryDirectory()
-        self.working_dir = Path(self.temp_dir.name)
-        self.raw_image_path = Path(raw_image)
+    def __init__(self, raw_image_path):
+        if not os.path.exists('/home/aditya.nath/test_celigo'):
+            os.mkdir('/home/aditya.nath/test_celigo')
+        # self.temp_dir = tempfile.TemporaryDirectory(dir='~/')
+        self.temp_dir = Path('/home/aditya.nath/test_celigo')
+        self.working_dir = Path(self.temp_dir)
+        self.raw_image_path = Path(raw_image_path)
         shutil.copyfile(self.raw_image_path, f'{self.working_dir}/{self.raw_image_path.name}')
         self.image_path =  Path(f'{self.working_dir}/{self.raw_image_path.name}')
-
+        self.filelist = Path()
 
     def downsample(self, scale_factor: int):
         """
@@ -57,26 +61,27 @@ class CeligoSingleImageCore:
         # Parameters to input to bash script template 
         script_config = {
             'image_path': str(self.image_path),
-            'output_name': str(self.image_path / '_probabilities.tiff')
+            'output_path': str(self.image_path.with_suffix('').with_suffix('')) + '_probabilities.tiff'
         }
 
         # Generates script_body from existing templates.
-        jinja_env = Environment(loader=PackageLoader(package_path= 'templates'))
+        # jinja_env = Environment(loader=PackageLoader(package_name = 'celigo_image_core', package_path= 'templates'))
+        jinja_env = Environment(loader=FileSystemLoader('/allen/aics/microscopy/brian_whitney/templates'))
         script_body = jinja_env.get_template('ilastik_template.j2').render(script_config)
 
         # Creates bash script locally.
-        with open(self.working_dir / 'run_ilastik.sh', 'w') as rsh:
+        with open(self.working_dir / 'ilastik.sh', 'w') as rsh:
             rsh.write(script_body)
 
         # Runs ilastik on slurm
-        subprocess.run(['sbatch', f'{str(self.working_dir)}/run_cellprofiler.sh'], check = True)
+        subprocess.run(['sbatch', f'{str(self.working_dir)}/ilastik.sh'], check = True)
 
         # Creates filelist.txt
-        with open(self.working_dir / 'filelist.txt', 'w') as rfl:
+        with open(self.working_dir / 'filelist.txt', 'w+') as rfl:
             rfl.write(str(self.image_path))
 
             # Have to use .with_suffix twice becasue of the .ome.tiff file suffix
-            rfl.write(str(self.image_path.parent / f"{self.image_path.with_suffix('').with_suffix('').name}_probabilities.tiff"))
+            rfl.write( str(self.image_path.with_suffix('').with_suffix('')) + '_probabilities.tiff')
 
         self.filelist = self.working_dir / 'filelist.txt'
 
@@ -98,15 +103,16 @@ class CeligoSingleImageCore:
         }
 
         # Generates script_body from existing templates.
-        jinja_env = Environment(loader=PackageLoader(package_path= 'templates'))
+        # jinja_env = Environment(loader=PackageLoader(package_name = 'celigo_image_core', package_path= 'templates'))
+        jinja_env = Environment(loader=FileSystemLoader('allen/aics/microscopy/brian_whitney/templates'))
         script_body = jinja_env.get_template('cellprofiler_template.j2').render(script_config)
 
         # Creates bash script locally.
-        with open(self.working_dir / 'run_cellprofiler.sh', 'w') as rsh:
+        with open(self.working_dir / 'cellprofiler.sh', 'w+') as rsh:
             rsh.write(script_body)
 
         # Runs cellprofiler on slurm
-        subprocess.run(['sbatch', f'{str(self.working_dir)}/run_cellprofiler.sh'], check = True)
+        subprocess.run(['sbatch', f'{str(self.working_dir)}/cellprofiler.sh'], check = True)
 
         # Returns path to directory of cellprofiler outputs
         return self.working_dir / 'cell_profiler_outputs'

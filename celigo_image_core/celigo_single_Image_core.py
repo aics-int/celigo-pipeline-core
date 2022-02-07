@@ -7,7 +7,7 @@ import os
 
 from skimage.transform import rescale
 from aicsimageio import AICSImage
-from aicsimageio.writers import OmeTiffWriter
+from aicsimageio.writers import TiffWriter
 
 
 class CeligoSingleImageCore:
@@ -24,15 +24,18 @@ class CeligoSingleImageCore:
     """
 
     def __init__(self, raw_image_path):
-        if not os.path.exists(f'/home/{os.getlogin()}/test_celigo'):
-            os.mkdir(f'/home/{os.getlogin()}/test_celigo')
+        self.tempdirname = Path(raw_image_path).with_suffix('').name
+        if not os.path.exists(f'/home/{os.getlogin()}/{self.tempdirname}'):
+            os.mkdir(f'/home/{os.getlogin()}/{self.tempdirname}')
         # self.temp_dir = tempfile.TemporaryDirectory(dir='~/')
-        self.temp_dir = Path(f'/home/{os.getlogin()}/test_celigo')
+        self.temp_dir = Path(f'/home/{os.getlogin()}/{self.tempdirname}')
         self.working_dir = Path(self.temp_dir)
         self.raw_image_path = Path(raw_image_path)
         shutil.copyfile(self.raw_image_path, f'{self.working_dir}/{self.raw_image_path.name}')
         self.image_path =  Path(f'{self.working_dir}/{self.raw_image_path.name}')
-        self.filelist = Path()
+        self.filelist_path = Path()
+        self.cell_profiler_output_path = Path()
+        self.scale_factor = 4
 
     def downsample(self, scale_factor: int):
         """
@@ -43,11 +46,11 @@ class CeligoSingleImageCore:
         """
 
         image = AICSImage(self.image_path)
-        image_rescaled = rescale(image.get_image_data(), 1 / scale_factor, anti_aliasing=False)
-        image_rescaled_path = self.image_path.parent / f"{self.image_path.with_suffix('').name}_rescale.ome.tiff"
-        OmeTiffWriter.save(image_rescaled, image_rescaled_path, dim_order= image.dims.order)
+        image_rescaled = rescale(image.get_image_data(), 1 / scale_factor, anti_aliasing=False, order=2, mode='symmetric')
+        image_rescaled_path = self.image_path.parent / f"{self.image_path.with_suffix('').name}_rescale.tiff"
+        TiffWriter.save(image_rescaled, image_rescaled_path, dim_order= image.dims.order)
         self.image_path = image_rescaled_path
-
+        
 
     def run_ilastik(self):
 
@@ -61,16 +64,16 @@ class CeligoSingleImageCore:
         # Parameters to input to bash script template 
         script_config = {
             'image_path': str(self.image_path),
-            'output_path': str(self.image_path.with_suffix('').with_suffix('')) + '_probabilities.tiff'
+            'output_path': str(self.image_path.with_suffix('')) + '_probabilities.tiff'
         }
 
         # Generates script_body from existing templates.
-        jinja_env = Environment(loader=PackageLoader(package_name = 'celigo_image_core', package_path= 'celigo_image_core/templates'))
+        jinja_env = Environment(loader=PackageLoader(package_name = 'celigo_image_core', package_path= 'templates'))
         # jinja_env = Environment(loader=FileSystemLoader('/allen/aics/microscopy/brian_whitney/templates'))
         script_body = jinja_env.get_template('ilastik_template.j2').render(script_config)
 
         # Creates bash script locally.
-        with open(self.working_dir / 'ilastik.sh', 'w') as rsh:
+        with open(self.working_dir / 'ilastik.sh', 'w+') as rsh:
             rsh.write(script_body)
 
         # Runs ilastik on slurm
@@ -78,12 +81,11 @@ class CeligoSingleImageCore:
 
         # Creates filelist.txt
         with open(self.working_dir / 'filelist.txt', 'w+') as rfl:
-            rfl.write(str(self.image_path))
-
+            rfl.write(str(self.image_path) + '\n')
             # Have to use .with_suffix twice becasue of the .ome.tiff file suffix
-            rfl.write( str(self.image_path.with_suffix('').with_suffix('')) + '_probabilities.tiff')
+            rfl.write( str(self.image_path.with_suffix('')) + '_probabilities.tiff')
 
-        self.filelist = self.working_dir / 'filelist.txt'
+        self.filelist_path = self.working_dir / 'filelist.txt'
 
     def run_cellprofiler(self) -> Path:
 
@@ -98,13 +100,13 @@ class CeligoSingleImageCore:
 
         # Parameters to input to bash script template.
         script_config = {
-            'filelist_path': str(self.filelist),
+            'filelist_path': str(self.filelist_path),
             'output_dir': str(self.working_dir / 'cell_profiler_outputs')
         }
 
         # Generates script_body from existing templates.
-        # jinja_env = Environment(loader=PackageLoader(package_name = 'celigo_image_core', package_path= 'templates'))
-        jinja_env = Environment(loader=FileSystemLoader('allen/aics/microscopy/brian_whitney/templates'))
+        jinja_env = Environment(loader=PackageLoader(package_name = 'celigo_image_core', package_path= 'templates'))
+        # jinja_env = Environment(loader=FileSystemLoader('/allen/aics/microscopy/brian_whitney/templates'))
         script_body = jinja_env.get_template('cellprofiler_template.j2').render(script_config)
 
         # Creates bash script locally.
@@ -115,4 +117,8 @@ class CeligoSingleImageCore:
         subprocess.run(['sbatch', f'{str(self.working_dir)}/cellprofiler.sh'], check = True)
 
         # Returns path to directory of cellprofiler outputs
-        return self.working_dir / 'cell_profiler_outputs'
+        self.cell_profiler_output_path =  self.working_dir / 'cell_profiler_outputs'
+
+
+        def cleanup(self):
+            shutil.rmtree(self.working_dir)

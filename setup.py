@@ -13,10 +13,10 @@ with open("README.md") as readme_file:
 
 
 requirements = [          
-    "jinja2>=3.0.0",
-    "skimage.transform>= 0.19.0",
-    "aicsimageio>=4.0.0",
-    "aicsimageio.writers>=4.0.0"
+    #"jinja2>=3.0.0",
+    #"skimage.transform>= 0.19.0",
+    #"aicsimageio>=4.0.0",
+    #"aicsimageio.writers>=4.0.0"
 ]
 
 setup(name=PACKAGE_NAME,

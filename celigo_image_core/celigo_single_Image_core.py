@@ -24,10 +24,10 @@ class CeligoSingleImageCore:
     """
 
     def __init__(self, raw_image_path):
-        if not os.path.exists('/home/aditya.nath/test_celigo'):
-            os.mkdir('/home/aditya.nath/test_celigo')
+        if not os.path.exists(f'/home/{os.getlogin()}/test_celigo'):
+            os.mkdir(f'/home/{os.getlogin()}/test_celigo')
         # self.temp_dir = tempfile.TemporaryDirectory(dir='~/')
-        self.temp_dir = Path('/home/aditya.nath/test_celigo')
+        self.temp_dir = Path(f'/home/{os.getlogin()}/test_celigo')
         self.working_dir = Path(self.temp_dir)
         self.raw_image_path = Path(raw_image_path)
         shutil.copyfile(self.raw_image_path, f'{self.working_dir}/{self.raw_image_path.name}')
@@ -65,8 +65,8 @@ class CeligoSingleImageCore:
         }
 
         # Generates script_body from existing templates.
-        # jinja_env = Environment(loader=PackageLoader(package_name = 'celigo_image_core', package_path= 'templates'))
-        jinja_env = Environment(loader=FileSystemLoader('/allen/aics/microscopy/brian_whitney/templates'))
+        jinja_env = Environment(loader=PackageLoader(package_name = 'celigo_image_core', package_path= 'celigo_image_core/templates'))
+        # jinja_env = Environment(loader=FileSystemLoader('/allen/aics/microscopy/brian_whitney/templates'))
         script_body = jinja_env.get_template('ilastik_template.j2').render(script_config)
 
         # Creates bash script locally.

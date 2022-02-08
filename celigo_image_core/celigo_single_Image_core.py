@@ -4,10 +4,11 @@ import shutil
 import subprocess
 import tempfile
 import os
+import numpy as np
 
 from skimage.transform import rescale
 from aicsimageio import AICSImage
-from aicsimageio.writers import TiffWriter
+from aicsimageio.writers import OmeTiffWriter
 
 
 class CeligoSingleImageCore:
@@ -47,8 +48,9 @@ class CeligoSingleImageCore:
 
         image = AICSImage(self.image_path)
         image_rescaled = rescale(image.get_image_data(), 1 / scale_factor, anti_aliasing=False, order=2, mode='symmetric')
+        image_rescaled = np.array(image_rescaled, dtype=np.uint8)
         image_rescaled_path = self.image_path.parent / f"{self.image_path.with_suffix('').name}_rescale.tiff"
-        TiffWriter.save(image_rescaled, image_rescaled_path, dim_order= image.dims.order)
+        OmeTiffWriter.save(image_rescaled, image_rescaled_path, dim_order= image.dims.order)
         self.image_path = image_rescaled_path
         
 

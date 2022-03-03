@@ -48,7 +48,8 @@ class CeligoSingleImageCore:
 
         image = AICSImage(self.image_path)
         image_rescaled = rescale(image.get_image_data(), 1 / scale_factor, anti_aliasing=False, order=2, mode='symmetric')
-        image_rescaled = np.array(image_rescaled, dtype=np.uint8)
+        factor = image.get_image_data().max() / image_rescaled.max()
+        image_rescaled = np.array(factor * image_rescaled, dtype=np.uint8)
         image_rescaled_path = self.image_path.parent / f"{self.image_path.with_suffix('').name}_rescale.tiff"
         OmeTiffWriter.save(image_rescaled, image_rescaled_path, dim_order= image.dims.order)
         self.image_path = image_rescaled_path
@@ -65,8 +66,8 @@ class CeligoSingleImageCore:
         """
         # Parameters to input to bash script template 
         script_config = {
-            'image_path': f"'{str(self.image_path)}'",
-            'output_path': f"'{str(self.image_path.with_suffix(''))}_probabilities.tiff'"
+            'image_path': f'"{str( self.image_path)}"',
+            'output_path': f'"{str(self.image_path.with_suffix('')) + '_probabilities.tiff'}"'
         }
 
         # Generates script_body from existing templates.

@@ -11,4 +11,4 @@ source activate
 conda activate cellprofiler_v4.2.1
 
 # run CellProfiler
-cellprofiler -r -c -p /allen/aics/microscopy/CellProfiler_4.1.3_Testing/96_well_colony_pipeline.cppipe --file-list {{ filelist }} -o {{ output_dir }}
+cellprofiler -r -c -p /allen/aics/microscopy/CellProfiler_4.1.3_Testing/96_well_colony_pipeline.cppipe --file-list {{ filelist_path }} -o {{ output_dir }}

@@ -65,8 +65,8 @@ class CeligoSingleImageCore:
         """
         # Parameters to input to bash script template 
         script_config = {
-            'image_path': f'"{str( self.image_path)}"',
-            'output_path': f'"{str(self.image_path.with_suffix('')) + '_probabilities.tiff'}"'
+            'image_path': f"'{str(self.image_path)}'",
+            'output_path': f"'{str(self.image_path.with_suffix(''))}_probabilities.tiff'"
         }
 
         # Generates script_body from existing templates.

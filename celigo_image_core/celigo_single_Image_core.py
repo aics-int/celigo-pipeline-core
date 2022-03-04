@@ -34,11 +34,42 @@ class CeligoSingleImageCore:
         self.raw_image_path = Path(raw_image_path)
         shutil.copyfile(self.raw_image_path, f'{self.working_dir}/{self.raw_image_path.name}')
         self.image_path =  Path(f'{self.working_dir}/{self.raw_image_path.name}')
-        self.filelist_path = Path()
+        self.main_filelist_path = Path()
+        self.resize_filelist_path = Path()
         self.cell_profiler_output_path = Path()
         self.scale_factor = 4
 
-    def downsample(self, scale_factor: int):
+    def downsample(self):
+        """ 
+        FUNCTIONALITY: This method takes an existing image and creates a copy of the image scaled by a given 
+        quantity/magnification. Ex. 4 --> 1/4 size.
+        """
+        # Generates a filelist
+        with open(self.working_dir / 'resize_filelist.txt', 'w+') as rfl:
+            rfl.write(str(self.image_path) + '\n')
+        self.resize_filelist_path = self.working_dir / 'main_filelist.txt'
+
+        # Defines variables for bash script
+        script_config = {
+            'image_path': f"'{str( self.image_path)}'",
+            'output_path': f"'{str(self.image_path.with_suffix(''))}_rescale.tiff'"
+        }
+
+        # Generates script_body from existing templates.
+        jinja_env = Environment(loader=PackageLoader(package_name = 'celigo_image_core', package_path= 'templates'))
+        script_body = jinja_env.get_template('resize_cellprofiler_template.j2').render(script_config)
+
+        # Creates bash script locally.
+        with open(self.working_dir / 'resize.sh', 'w+') as rsh:
+            rsh.write(script_body)
+
+        # Runs resize on slurm
+        subprocess.run(['sbatch', f'{str(self.working_dir)}/resize.sh'], check = True)
+
+        # Sets path to resized image to image path for future use  
+        self.image_path = self.image_path.parent / f"{self.image_path.with_suffix('').name}_rescale.tiff"
+
+    def old_downsample(self, scale_factor: int):
         """
         PARAMETERS: Takes in a scaling factor (scale_factor).
         
@@ -53,7 +84,6 @@ class CeligoSingleImageCore:
         image_rescaled_path = self.image_path.parent / f"{self.image_path.with_suffix('').name}_rescale.tiff"
         OmeTiffWriter.save(image_rescaled, image_rescaled_path, dim_order= image.dims.order)
         self.image_path = image_rescaled_path
-        
 
     def run_ilastik(self):
 
@@ -83,12 +113,12 @@ class CeligoSingleImageCore:
         subprocess.run(['sbatch', f'{str(self.working_dir)}/ilastik.sh'], check = True)
 
         # Creates filelist.txt
-        with open(self.working_dir / 'filelist.txt', 'w+') as rfl:
+        with open(self.working_dir / 'main_filelist.txt', 'w+') as rfl:
             rfl.write(str(self.image_path) + '\n')
             # Have to use .with_suffix twice becasue of the .ome.tiff file suffix
             rfl.write( str(self.image_path.with_suffix('')) + '_probabilities.tiff')
 
-        self.filelist_path = self.working_dir / 'filelist.txt'
+        self.main_filelist_path = self.working_dir / 'main_filelist.txt'
 
     def run_cellprofiler(self) -> Path:
 

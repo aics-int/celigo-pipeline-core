@@ -51,7 +51,7 @@ class CeligoSingleImageCore:
 
         # Defines variables for bash script
         script_config = {
-            'image_path': f"'{str( self.image_path)}'",
+            'filelist_path': str(self.resize_filelist_path),
             'output_path': f"'{str(self.image_path.with_suffix(''))}_rescale.tiff'"
         }
 
@@ -147,7 +147,7 @@ class CeligoSingleImageCore:
             rsh.write(script_body)
 
         # Runs cellprofiler on slurm
-        subprocess.run(['sbatch', f'{str(self.working_dir)}/cellprofiler.sh'], check = True)
+        subprocess.run(['sbatch', f'{str(self.working_dir)}/cellprofiler.sh'], check = True)am
 
         # Returns path to directory of cellprofiler outputs
         self.cell_profiler_output_path =  self.working_dir / 'cell_profiler_outputs'

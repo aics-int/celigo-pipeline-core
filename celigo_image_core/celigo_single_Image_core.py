@@ -53,7 +53,7 @@ class CeligoSingleImageCore:
         script_config = {
 
             'filelist_path': str(self.resize_filelist_path),
-            'output_path': f"'{str(self.image_path.with_suffix(''))}_rescaletest.tiff'"
+            'output_path': str(self.working_dir)
         }
 
         # Generates script_body from existing templates.
@@ -68,7 +68,7 @@ class CeligoSingleImageCore:
         subprocess.run(['sbatch', f'{str(self.working_dir)}/resize.sh'], check = True)
 
         # Sets path to resized image to image path for future use  
-        self.image_path = self.image_path.parent / f"{self.image_path.with_suffix('').name}_rescaletest.tiff"
+        self.image_path = self.image_path.parent / f"{self.image_path.with_suffix('').name}_rescale.tiff"
 
     def old_downsample(self, scale_factor: int):
         """

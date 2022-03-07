@@ -86,7 +86,7 @@ class CeligoSingleImageCore:
         OmeTiffWriter.save(image_rescaled, image_rescaled_path, dim_order= image.dims.order)
         self.image_path = image_rescaled_path
 
-        def run_ilastik(self):
+    def run_ilastik(self):
 
         """
         FUNCTIONALITY: This method takes an existing image either scaled or unscaled and creates a probability 
@@ -154,5 +154,5 @@ class CeligoSingleImageCore:
         self.cell_profiler_output_path =  self.working_dir / 'cell_profiler_outputs'
 
 
-        def cleanup(self):
+    def cleanup(self):
             shutil.rmtree(self.working_dir)

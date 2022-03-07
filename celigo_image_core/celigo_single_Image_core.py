@@ -51,7 +51,8 @@ class CeligoSingleImageCore:
 
         # Defines variables for bash script
         script_config = {
-            'filelist_path': f"'str(self.resize_filelist_path)'",
+
+            'filelist_path': str(self.resize_filelist_path),
             'output_path': f"'{str(self.image_path.with_suffix(''))}_rescale.tiff'"
         }
 

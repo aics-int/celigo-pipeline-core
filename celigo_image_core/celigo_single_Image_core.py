@@ -26,15 +26,15 @@ class CeligoSingleImageCore:
 
     def __init__(self, raw_image_path):
         self.tempdirname = Path(raw_image_path).with_suffix('').name
-        if not os.path.exists(f'/home/brian.whitney/{self.tempdirname}'):
-            os.mkdir(f'/home/brian.whitney/{self.tempdirname}')
+        if not os.path.exists(f'/home/brian.whitney/{self.tempdirname}'): # NEEDS TO CHANGE TO HOME/USER
+            os.mkdir(f'/home/brian.whitney/{self.tempdirname}') # NEEDS TO CHANGE TO HOME/USER
         # self.temp_dir = tempfile.TemporaryDirectory(dir='~/')
-        self.temp_dir = Path(f'/home/brian.whitney/{self.tempdirname}')
+        self.temp_dir = Path(f'/home/brian.whitney/{self.tempdirname}') # NEEDS TO CHANGE TO HOME/USER
         self.working_dir = Path(self.temp_dir)
         self.raw_image_path = Path(raw_image_path)
         shutil.copyfile(self.raw_image_path, f'{self.working_dir}/{self.raw_image_path.name}')
         self.image_path =  Path(f'{self.working_dir}/{self.raw_image_path.name}')
-        self.main_filelist_path = Path()
+        self.filelist_path = Path()
         self.resize_filelist_path = Path()
         self.cell_profiler_output_path = Path()
 
@@ -53,7 +53,7 @@ class CeligoSingleImageCore:
         script_config = {
 
             'filelist_path': str(self.resize_filelist_path),
-            'output_path': f"'{str(self.image_path.with_suffix(''))}_rescale.tiff'"
+            'output_path': f"'{str(self.image_path.with_suffix(''))}_rescaletest.tiff'"
         }
 
         # Generates script_body from existing templates.
@@ -68,7 +68,7 @@ class CeligoSingleImageCore:
         subprocess.run(['sbatch', f'{str(self.working_dir)}/resize.sh'], check = True)
 
         # Sets path to resized image to image path for future use  
-        self.image_path = self.image_path.parent / f"{self.image_path.with_suffix('').name}_rescale.tiff"
+        self.image_path = self.image_path.parent / f"{self.image_path.with_suffix('').name}_rescaletest.tiff"
 
     def old_downsample(self, scale_factor: int):
         """
@@ -86,7 +86,7 @@ class CeligoSingleImageCore:
         OmeTiffWriter.save(image_rescaled, image_rescaled_path, dim_order= image.dims.order)
         self.image_path = image_rescaled_path
 
-    def run_ilastik(self):
+        def run_ilastik(self):
 
         """
         FUNCTIONALITY: This method takes an existing image either scaled or unscaled and creates a probability 
@@ -114,12 +114,12 @@ class CeligoSingleImageCore:
         subprocess.run(['sbatch', f'{str(self.working_dir)}/ilastik.sh'], check = True)
 
         # Creates filelist.txt
-        with open(self.working_dir / 'main_filelist.txt', 'w+') as rfl:
+        with open(self.working_dir / 'filelist.txt', 'w+') as rfl:
             rfl.write(str(self.image_path) + '\n')
             # Have to use .with_suffix twice becasue of the .ome.tiff file suffix
             rfl.write( str(self.image_path.with_suffix('')) + '_probabilities.tiff')
 
-        self.main_filelist_path = self.working_dir / 'main_filelist.txt'
+        self.filelist_path = self.working_dir / 'filelist.txt'
 
     def run_cellprofiler(self) -> Path:
 

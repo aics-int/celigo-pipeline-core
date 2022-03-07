@@ -37,7 +37,6 @@ class CeligoSingleImageCore:
         self.main_filelist_path = Path()
         self.resize_filelist_path = Path()
         self.cell_profiler_output_path = Path()
-        self.scale_factor = 4
 
     def downsample(self):
         """ 
@@ -47,7 +46,8 @@ class CeligoSingleImageCore:
         # Generates a filelist
         with open(self.working_dir / 'resize_filelist.txt', 'w+') as rfl:
             rfl.write(str(self.image_path) + '\n')
-        self.resize_filelist_path = self.working_dir / 'main_filelist.txt'
+
+        self.resize_filelist_path = self.working_dir / 'resize_filelist.txt'
 
         # Defines variables for bash script
         script_config = {
@@ -147,7 +147,7 @@ class CeligoSingleImageCore:
             rsh.write(script_body)
 
         # Runs cellprofiler on slurm
-        subprocess.run(['sbatch', f'{str(self.working_dir)}/cellprofiler.sh'], check = True)am
+        subprocess.run(['sbatch', f'{str(self.working_dir)}/cellprofiler.sh'], check = True)
 
         # Returns path to directory of cellprofiler outputs
         self.cell_profiler_output_path =  self.working_dir / 'cell_profiler_outputs'

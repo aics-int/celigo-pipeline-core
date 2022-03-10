@@ -138,7 +138,7 @@ class CeligoSingleImageCore:
         # Parameters to input to bash script template.
         script_config = {
             'filelist_path': str(self.filelist_path),
-            'output_dir': str(self.working_dir / 'cell_profiler_outputs')
+            'output_dir': str(self.working_dir / 'cell_profiler_outputs'),
             'pipeline_path': str(self.cellprofiler_pipeline_path)
         }
 

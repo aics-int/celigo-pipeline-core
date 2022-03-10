@@ -10,7 +10,7 @@ import importlib.resources
 from skimage.transform import rescale
 from aicsimageio import AICSImage
 from aicsimageio.writers import OmeTiffWriter
-
+from . import pipelines
 
 class CeligoSingleImageCore:
 
@@ -47,10 +47,11 @@ class CeligoSingleImageCore:
         self.cell_profiler_output_path = Path()
 
         # Pipeline paths for templates
-
-        self.rescale_pipeline_path = importlib.resources.path('celigo_image_core.pipelines','rescale_pipeline.cppipe')
+        with pkg_resources.path(packages, "rescale_pipeline.cppipe") as p:
+            self.rescale_pipeline_path= p
+        # self.rescale_pipeline_path = importlib.resources.path('celigo_image_core.pipelines','rescale_pipeline.cppipe')
         # self.ilastik_pipeline_path = importlib.resources.path('celigo_image_core.pipelines', 'ballingandlifting.ilp') This file is currently huge and should not be imported with package
-        self.cellprofiler_pipeline_path = importlib.resources.path('celigo_image_core.pipelines', '96_well_colony_pipeline.cppipe')
+        # self.cellprofiler_pipeline_path = importlib.resources.path('celigo_image_core.pipelines', '96_well_colony_pipeline.cppipe')
 
     def downsample(self):
         """ 
@@ -80,7 +81,7 @@ class CeligoSingleImageCore:
 
         # Runs resize on slurm
         subprocess.run(['sbatch', f'{str(self.working_dir)}/resize.sh'], check = True)
-        
+
         # Sets path to resized image to image path for future use  
         self.image_path = self.image_path.parent / f"{self.image_path.with_suffix('').name}_rescale.tiff"
 

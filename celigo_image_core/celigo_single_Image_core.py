@@ -80,7 +80,7 @@ class CeligoSingleImageCore:
 
         # Runs resize on slurm
         subprocess.run(['sbatch', f'{str(self.working_dir)}/resize.sh'], check = True)
-d
+        
         # Sets path to resized image to image path for future use  
         self.image_path = self.image_path.parent / f"{self.image_path.with_suffix('').name}_rescale.tiff"
 

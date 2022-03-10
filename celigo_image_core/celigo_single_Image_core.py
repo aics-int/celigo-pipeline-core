@@ -47,7 +47,7 @@ class CeligoSingleImageCore:
         self.cell_profiler_output_path = Path()
 
         # Pipeline paths for templates
-        with pkg_resources.path(packages, "rescale_pipeline.cppipe") as p:
+        with pkg_resources.path(pipelines, "rescale_pipeline.cppipe") as p:
             self.rescale_pipeline_path= p
         # self.rescale_pipeline_path = importlib.resources.path('celigo_image_core.pipelines','rescale_pipeline.cppipe')
         # self.ilastik_pipeline_path = importlib.resources.path('celigo_image_core.pipelines', 'ballingandlifting.ilp') This file is currently huge and should not be imported with package

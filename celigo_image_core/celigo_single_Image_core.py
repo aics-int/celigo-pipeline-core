@@ -5,7 +5,7 @@ import subprocess
 import tempfile
 import os
 import numpy as np
-import importlib.resources
+import importlib.resources as pkg_resources
 
 from skimage.transform import rescale
 from aicsimageio import AICSImage

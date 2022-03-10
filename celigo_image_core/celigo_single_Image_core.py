@@ -49,6 +49,9 @@ class CeligoSingleImageCore:
         # Pipeline paths for templates
         with pkg_resources.path(pipelines, "rescale_pipeline.cppipe") as p:
             self.rescale_pipeline_path= p
+        with pkg_resources.path(pipelines, "rescale_pipeline.cppipe") as p:
+            self.cellprofiler_pipeline_path= p
+
         # self.rescale_pipeline_path = importlib.resources.path('celigo_image_core.pipelines','rescale_pipeline.cppipe')
         # self.ilastik_pipeline_path = importlib.resources.path('celigo_image_core.pipelines', 'ballingandlifting.ilp') This file is currently huge and should not be imported with package
         # self.cellprofiler_pipeline_path = importlib.resources.path('celigo_image_core.pipelines', '96_well_colony_pipeline.cppipe')
@@ -68,7 +71,8 @@ class CeligoSingleImageCore:
         script_config = {
 
             'filelist_path': str(self.resize_filelist_path),
-            'output_path': str(self.working_dir)
+            'output_path': str(self.working_dir),
+            'pipeline_path': str(self.rescale_pipeline_path)
         }
 
         # Generates script_body from existing templates.
@@ -84,22 +88,6 @@ class CeligoSingleImageCore:
 
         # Sets path to resized image to image path for future use  
         self.image_path = self.image_path.parent / f"{self.image_path.with_suffix('').name}_rescale.tiff"
-
-    def old_downsample(self, scale_factor: int):
-        """
-        PARAMETERS: Takes in a scaling factor (scale_factor).
-        
-        FUNCTIONALITY: This method takes an existing image and creates a copy of the image scaled by a given 
-        quantity/magnification. Ex. 4 --> 1/4 size.
-        """
-
-        image = AICSImage(self.image_path)
-        image_rescaled = rescale(image.get_image_data(), 1 / scale_factor, anti_aliasing=False, order=2, mode='symmetric')
-        factor = image.get_image_data().max() / image_rescaled.max()
-        image_rescaled = np.array(factor * image_rescaled, dtype=np.uint8)
-        image_rescaled_path = self.image_path.parent / f"{self.image_path.with_suffix('').name}_rescale.tiff"
-        OmeTiffWriter.save(image_rescaled, image_rescaled_path, dim_order= image.dims.order)
-        self.image_path = image_rescaled_path
 
     def run_ilastik(self):
 
@@ -151,6 +139,7 @@ class CeligoSingleImageCore:
         script_config = {
             'filelist_path': str(self.filelist_path),
             'output_dir': str(self.working_dir / 'cell_profiler_outputs')
+            'pipeline_path': str(self.cellprofiler_pipeline_path)
         }
 
         # Generates script_body from existing templates.

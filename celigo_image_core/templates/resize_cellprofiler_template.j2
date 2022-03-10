@@ -11,4 +11,4 @@ source activate
 conda activate cellprofiler_v4.2.1
 
 # run Resize with CellProfiler
-cellprofiler -r -c -p /allen/aics/microscopy/CellProfiler_4.1.3_Testing/rescale_pipeline.cppipe --file-list {{ filelist_path }} -o {{ output_path }}
+cellprofiler -r -c -p {{ pipeline_path }} {{ filelist_path }} -o {{ output_path }}

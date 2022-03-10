@@ -26,11 +26,12 @@ class CeligoSingleImageCore:
 
     def __init__(self, raw_image_path):
         self.tempdirname = Path(raw_image_path).with_suffix('').name
-        if not os.path.exists(f'/home/brian.whitney/{self.tempdirname}'): # NEEDS TO CHANGE TO HOME/USER
-            os.mkdir(f'/home/brian.whitney/{self.tempdirname}') # NEEDS TO CHANGE TO HOME/USER
+        if not os.path.exists(f'/home/{pwd.getpwuid(os.getuid())[0]}/{self.tempdirname}'): # NEEDS TO CHANGE TO HOME/USER
+            os.mkdir(f'/home/{pwd.getpwuid(os.getuid())[0]}/{self.tempdirname}') # NEEDS TO CHANGE TO HOME/USER
         # self.temp_dir = tempfile.TemporaryDirectory(dir='~/')
-        self.temp_dir = Path(f'/home/brian.whitney/{self.tempdirname}') # NEEDS TO CHANGE TO HOME/USER
-        self.working_dir = Path(self.temp_dir)
+        self.working_dir= Path(f'/home/{pwd.getpwuid(os.getuid())[0]}/{self.tempdirname}') # NEEDS TO CHANGE TO HOME/USER
+
+        # Image Paths
         self.raw_image_path = Path(raw_image_path)
         shutil.copyfile(self.raw_image_path, f'{self.working_dir}/{self.raw_image_path.name}')
         self.image_path =  Path(f'{self.working_dir}/{self.raw_image_path.name}')

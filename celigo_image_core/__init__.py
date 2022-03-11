@@ -9,7 +9,7 @@ def get_module_version():
     return __version__
 
 
-from .celigo_single_Image_core import CeligoSingleImageCore
+from .celigo_single_Image_core import CeligoSingleimageCore
+from .celigo_orchestration import celigo_run_single, celigo_run_all
 
-
-__all__ = ("CeligoSingleImageCore")
+__all__ = ("CeligoSingleImageCore",'celigo_run_single','celigo_run_all')

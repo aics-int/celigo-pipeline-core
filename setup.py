@@ -1,33 +1,59 @@
-from pkg_resources import Requirement
-from setuptools import setup, find_packages
-
-
-#######################################################################################################################
+#!/usr/bin/env python
+# -*- coding: utf-8 -*-
 
 MODULE_VERSION = "1.0.0"
-PACKAGE_NAME = 'celigo_image_core'
+PACKAGE_NAME = "celigo_image_core"
 
+"""The setup script."""
+
+from setuptools import find_packages, setup
 
 with open("README.md") as readme_file:
     readme = readme_file.read()
 
-
-requirements = [          
-    #"jinja2>=3.0.0",
-    #"skimage.transform>= 0.19.0",
-    #"aicsimageio>=4.0.0",
-    #"aicsimageio.writers>=4.0.0"
+setup_requirements = [
+    "black == 21.7b0",
+    "flake8 ~= 3.9",
+    "isort ~= 5.9",
+    "mypy ~= 0.910",
+    "pre-commit ~= 2.13",
+    "pytest-runner ~= 5.2",
 ]
 
-setup(name=PACKAGE_NAME,
-    version=MODULE_VERSION,
-    description='later',
-    long_description= readme,
-    author='Brian Whitney',
-    author_email='brian.whitney@alleninstitute.org',
-    license='Allen Institute Software License',
-    packages=find_packages(exclude=["tests", "*.tests", "*.tests.*"]),
-    install_requires=requirements,
+test_requirements = [
+    "pytest ~= 6.2",
+    "pytest-runner ~= 5.3",
+    "pytest-cov ~= 2.12",
+    "pytest-raises ~= 0.11",
+]
+
+dev_requirements = [
+    *setup_requirements,
+    *test_requirements,
+    "bump2version ~= 1.0.1",
+    "twine ~= 3.4.2",
+    "wheel ~= 0.37.0",
+    # Documentation generation
+    "Sphinx ~= 4.1.2",
+    "furo == 2021.8.17b43",  # Third-party theme (https://pradyunsg.me/furo/quickstart/)
+    "m2r2 ~= 0.3.1",  # Sphinx extension for parsing README.md as reST and including in Sphinx docs
+]
+
+requirements = ["aicsimageio[czi] ~= 4.4", "numpy ~= 1.21", "scikit-image ~= 0.18"]
+
+extra_requirements = {
+    "setup": setup_requirements,
+    "test": test_requirements,
+    "dev": dev_requirements,
+    "all": [
+        *requirements,
+        *dev_requirements,
+    ],
+}
+
+setup(
+    author="Brian Whitney",
+    author_email="brian.whitney@alleninstitute.org",
     classifiers=[
         "Development Status :: 2 - Pre-Alpha",
         "Intended Audience :: Developers",
@@ -35,20 +61,24 @@ setup(name=PACKAGE_NAME,
         "Natural Language :: English",
         "Programming Language :: Python :: 3.8",
         "Programming Language :: Python :: 3.9",
-    ]
-      )
-
-
-"""
-from jinja2 import Environment, FileSystemLoader
-from pathlib import Path
-import shutil
-import subprocess
-import tempfile
-
-from skimage.transform import rescale
-from aicsimageio import AICSImage
-from aicsimageio.writers import OmeTiffWriter
-
-class CeligoSingleImageCore:
-"""
+    ],
+    description="Core algorithms for running Celigo pipeline",
+    install_requires=requirements,
+    license="Allen Institute Software License",
+    long_description=readme,
+    long_description_content_type="text/markdown",
+    include_package_data=True,
+    keywords="celigo_image_core",
+    name="celigo_image_core",
+    packages=find_packages(exclude=["tests", "*.tests", "*.tests.*"]),
+    python_requires=">=3.8",  # This is driven by aicsimageio constraints
+    setup_requires=setup_requirements,
+    test_suite="celigo_image_core/tests",
+    tests_require=test_requirements,
+    extras_require=extra_requirements,
+    url="https://github.com/aics-int/celigo_image_core",
+    # Do not edit this string manually, always use bumpversion
+    # Details in CONTRIBUTING.rst
+    version="1.0.0",
+    zip_safe=False,
+)

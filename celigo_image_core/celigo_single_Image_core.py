@@ -30,14 +30,14 @@ class CeligoSingleImageCore:
 
         # Working Directory
         if not os.path.exists(
-            f"/home/brian.whitney/{self.tempdirname}"
+            f"/home/brian.whitney/{self.tempdirname}" #TODO: CHANGE TO HOME/USER
         ):  # NEEDS TO CHANGE TO HOME/USER
             os.mkdir(
-                f"/home/brian.whitney/{self.tempdirname}"
+                f"/home/brian.whitney/{self.tempdirname}" # TODO: CHANGE TO HOME/USER
             )  # NEEDS TO CHANGE TO HOME/USER
         # self.temp_dir = tempfile.TemporaryDirectory(dir='~/')
         self.working_dir = Path(
-            f"/home/brian.whitney/{self.tempdirname}"
+            f"/home/brian.whitney/{self.tempdirname}" #TODO: CHANGE TO HOME/USER
         )  # NEEDS TO CHANGE TO HOME/USER
 
         # Image Paths
@@ -55,7 +55,7 @@ class CeligoSingleImageCore:
         # Pipeline paths for templates
         with pkg_resources.path(pipelines, "rescale_pipeline.cppipe") as p:
             self.rescale_pipeline_path = p
-        with pkg_resources.path(pipelines, "rescale_pipeline.cppipe") as p:
+        with pkg_resources.path(pipelines, "96_well_colony_pipeline.cppipe") as p:
             self.cellprofiler_pipeline_path = p
 
     def downsample(self):

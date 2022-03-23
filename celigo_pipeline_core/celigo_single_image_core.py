@@ -75,7 +75,7 @@ class CeligoSingleImageCore:
         # Generates script_body from existing templates.
         jinja_env = Environment(
             loader=PackageLoader(
-                package_name="celigo_image_core", package_path="templates"
+                package_name="celigo_pipeline_core", package_path="templates"
             )
         )
         script_body = jinja_env.get_template("resize_cellprofiler_template.j2").render(
@@ -106,7 +106,7 @@ class CeligoSingleImageCore:
         # Generates script_body from existing templates.
         jinja_env = Environment(
             loader=PackageLoader(
-                package_name="celigo_image_core", package_path="templates"
+                package_name="celigo_pipeline_core", package_path="templates"
             )
         )
 
@@ -140,7 +140,7 @@ class CeligoSingleImageCore:
         # Generates script_body from existing templates.
         jinja_env = Environment(
             loader=PackageLoader(
-                package_name="celigo_image_core", package_path="templates"
+                package_name="celigo_pipeline_core", package_path="templates"
             )
         )
         script_body = jinja_env.get_template("cellprofiler_template.j2").render(

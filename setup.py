@@ -2,7 +2,7 @@
 # -*- coding: utf-8 -*-
 
 MODULE_VERSION = "1.0.1"
-PACKAGE_NAME = "celigo_image_core"
+PACKAGE_NAME = "celigo_pipeline_core"
 
 """The setup script."""
 
@@ -68,15 +68,15 @@ setup(
     long_description=readme,
     long_description_content_type="text/markdown",
     package_data={PACKAGE_NAME: ['templates/*', 'pipelines/*']},
-    keywords="celigo_image_core",
-    name="celigo_image_core",
+    keywords="celigo_pipeline_core",
+    name="celigo_pipeline_core",
     packages=find_packages(exclude=["tests", "*.tests", "*.tests.*"]),
     python_requires=">=3.8",  # This is driven by aicsimageio constraints
     setup_requires=setup_requirements,
-    test_suite="celigo_image_core/tests",
+    test_suite="celigo_pipeline_core/tests",
     tests_require=test_requirements,
     extras_require=extra_requirements,
-    url="https://github.com/aics-int/celigo_image_core",
+    url="https://github.com/aics-int/Celigo-Code-Record",
     # Do not edit this string manually, always use bumpversion
     # Details in CONTRIBUTING.rst
     version="1.0.0",

@@ -12,7 +12,7 @@ with open("README.md") as readme_file:
     readme = readme_file.read()
 
 setup_requirements = [
-    "black == 21.7b0",
+    "black",
     "flake8 ~= 3.9",
     "isort ~= 5.9",
     "mypy ~= 0.910",

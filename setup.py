@@ -67,7 +67,7 @@ setup(
     license="Allen Institute Software License",
     long_description=readme,
     long_description_content_type="text/markdown",
-    include_package_data=True,
+    package_data={PACKAGE_NAME: ['templates/*', 'pipelines/*']}
     keywords="celigo_image_core",
     name="celigo_image_core",
     packages=find_packages(exclude=["tests", "*.tests", "*.tests.*"]),

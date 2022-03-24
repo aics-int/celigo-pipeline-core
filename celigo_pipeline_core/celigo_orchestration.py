@@ -25,7 +25,7 @@ def job_complete_check(job_ID,endfile):
 
     while (not endfile.exists()) and job_status != 'complete':
         
-        if  not (job_in_queue_check(job_ID)) and job_status is 'waiting':
+        if  not (job_in_queue_check(job_ID)) and job_status == 'waiting':
             job_status = 'waiting' # could change to pass
         elif (job_in_queue_check(job_ID)):
             job_status = 'running'
@@ -36,7 +36,7 @@ def job_complete_check(job_ID,endfile):
             job_status = 'complete'
             print("job " + job_ID + " is complete!")
 
-    if job_status is 'failed':
+    if job_status == 'failed':
         print("job " + job_ID + " is Failed")
 
 def job_in_queue_check(job_ID):

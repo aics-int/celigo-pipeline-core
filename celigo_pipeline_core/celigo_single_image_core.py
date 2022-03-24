@@ -31,18 +31,18 @@ class CeligoSingleImageCore:
 
         # Working Directory
         if not os.path.exists(
-            f"/home/{pwd.getpwuid(os.getuid())[0]}/{self.tempdirname}" #TODO: CHANGE TO HOME/USER
-        ):  # NEEDS TO CHANGE TO HOME/USER
+            f"/home/{pwd.getpwuid(os.getuid())[0]}/{self.tempdirname}" 
+        ):
             os.mkdir(
-                f"/home/{pwd.getpwuid(os.getuid())[0]}/{self.tempdirname}" # TODO: CHANGE TO HOME/USER
-            )  # NEEDS TO CHANGE TO HOME/USER
-        # self.temp_dir = tempfile.TemporaryDirectory(dir='~/')
+                f"/home/{pwd.getpwuid(os.getuid())[0]}/{self.tempdirname}"  
+            )  
         self.working_dir = Path(
-            f"/home/{pwd.getpwuid(os.getuid())[0]}/{self.tempdirname}" #TODO: CHANGE TO HOME/USER
-        )  # NEEDS TO CHANGE TO HOME/USER
+            f"/home/{pwd.getpwuid(os.getuid())[0]}/{self.tempdirname}"  
+        )  
 
         # Image Paths
         self.raw_image_path = Path(raw_image_path)
+        
         shutil.copyfile(
             self.raw_image_path, f"{self.working_dir}/{self.raw_image_path.name}"
         )
@@ -92,7 +92,11 @@ class CeligoSingleImageCore:
             rsh.write(script_body)
 
         # Runs resize on slurm
-        output = subprocess.run(["sbatch", f"{str(self.working_dir)}/resize.sh"], check=True, capture_output=True)
+        output = subprocess.run(
+            ["sbatch", f"{str(self.working_dir)}/resize.sh"],
+            check=True,
+            capture_output=True,
+        )
 
         # Sets path to resized image to image path for future use
         self.image_path = (
@@ -127,7 +131,11 @@ class CeligoSingleImageCore:
             rsh.write(script_body)
 
         # Runs ilastik on slurm
-        output = subprocess.run(["sbatch", f"{str(self.working_dir)}/ilastik.sh"], check=True, capture_output=True)
+        output = subprocess.run(
+            ["sbatch", f"{str(self.working_dir)}/ilastik.sh"],
+            check=True,
+            capture_output=True,
+        )
 
         # Creates filelist.txt
         with open(self.working_dir / "filelist.txt", "w+") as rfl:
@@ -163,12 +171,18 @@ class CeligoSingleImageCore:
 
         # Runs cellprofiler on slurm
         output = subprocess.run(
-            ["sbatch", f"{str(self.working_dir)}/cellprofiler.sh"], check=True, capture_output=True)
+            ["sbatch", f"{str(self.working_dir)}/cellprofiler.sh"],
+            check=True,
+            capture_output=True,
+        )
 
         # Returns path to directory of cellprofiler outputs
         self.cell_profiler_output_path = self.working_dir / "cell_profiler_outputs"
         job_ID = int(output.stdout.decode("utf-8").split(" ")[-1][:-1])
-        return job_ID, script_config['output_dir'] #TODO change this to the last output
+        return (
+            job_ID,
+            script_config["output_dir"],
+        )  # TODO change this to the last output
 
     def cleanup(self):
         shutil.rmtree(self.working_dir)

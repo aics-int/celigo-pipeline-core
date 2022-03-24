@@ -67,7 +67,7 @@ setup(
     license="Allen Institute Software License",
     long_description=readme,
     long_description_content_type="text/markdown",
-    package_data={PACKAGE_NAME: ['templates/*', 'pipelines/*']},
+    package_data={PACKAGE_NAME: ["templates/*", "pipelines/*"]},
     keywords="celigo_pipeline_core",
     name="celigo_pipeline_core",
     packages=find_packages(exclude=["tests", "*.tests", "*.tests.*"]),

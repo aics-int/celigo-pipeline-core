@@ -9,10 +9,9 @@ def get_module_version():
     return __version__
 
 
+from .celigo_orchestration import *
 from .celigo_single_image_core import (
     CeligoSingleImageCore,
 )
-
-from .celigo_orchestration import *
 
 __all__ = "CeligoSingleImageCore"

@@ -7,7 +7,7 @@ import subprocess
 
 from jinja2 import Environment, PackageLoader
 
-from . import pipelines
+from .. import pipelines
 
 
 class CeligoSingleImageCore:
@@ -42,7 +42,7 @@ class CeligoSingleImageCore:
 
         # Image Paths
         self.raw_image_path = Path(raw_image_path)
-        
+
         shutil.copyfile(
             self.raw_image_path, f"{self.working_dir}/{self.raw_image_path.name}"
         )

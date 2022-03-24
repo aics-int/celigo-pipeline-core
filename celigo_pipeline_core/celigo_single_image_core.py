@@ -100,7 +100,7 @@ class CeligoSingleImageCore:
             / f"{self.image_path.with_suffix('').name}_rescale.tiff"
         )
 
-        job_ID = str(output)
+        job_ID = int(output.stdout.split(' ')[-1])
         return job_ID, script_config['output_path']
 
     def run_ilastik(self):

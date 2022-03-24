@@ -53,6 +53,10 @@ class CeligoSingleImageCore:
         self.resize_filelist_path = Path()
         self.cell_profiler_output_path = Path()
 
+        self.downsample_job_ID = int()
+        self.ilastik_job_ID = int()
+        self.cellprofiler_job_ID = int()
+
         # Pipeline paths for templates
         with pkg_resources.path(pipelines, "rescale_pipeline.cppipe") as p:
             self.rescale_pipeline_path = p
@@ -88,13 +92,16 @@ class CeligoSingleImageCore:
             rsh.write(script_body)
 
         # Runs resize on slurm
-        subprocess.run(["sbatch", f"{str(self.working_dir)}/resize.sh"], check=True)
+        output = subprocess.run(["sbatch", f"{str(self.working_dir)}/resize.sh"], check=True, capture_output=True)
 
         # Sets path to resized image to image path for future use
         self.image_path = (
             self.image_path.parent
             / f"{self.image_path.with_suffix('').name}_rescale.tiff"
         )
+
+        job_ID = int(output.split(' ')[-1])
+        return job_ID, script_config['output_path']
 
     def run_ilastik(self):
 
@@ -120,7 +127,7 @@ class CeligoSingleImageCore:
             rsh.write(script_body)
 
         # Runs ilastik on slurm
-        subprocess.run(["sbatch", f"{str(self.working_dir)}/ilastik.sh"], check=True)
+        output = subprocess.run(["sbatch", f"{str(self.working_dir)}/ilastik.sh"], check=True, capture_output=True)
 
         # Creates filelist.txt
         with open(self.working_dir / "filelist.txt", "w+") as rfl:
@@ -128,6 +135,8 @@ class CeligoSingleImageCore:
             rfl.write(str(self.image_path.with_suffix("")) + "_probabilities.tiff")
 
         self.filelist_path = self.working_dir / "filelist.txt"
+        job_ID = int(output.split(' ')[-1])
+        return job_ID, script_config['output_path']
 
     def run_cellprofiler(self):
 
@@ -153,12 +162,13 @@ class CeligoSingleImageCore:
             rsh.write(script_body)
 
         # Runs cellprofiler on slurm
-        subprocess.run(
-            ["sbatch", f"{str(self.working_dir)}/cellprofiler.sh"], check=True
-        )
+        output = subprocess.run(
+            ["sbatch", f"{str(self.working_dir)}/cellprofiler.sh"], check=True, capture_output=True)
 
         # Returns path to directory of cellprofiler outputs
         self.cell_profiler_output_path = self.working_dir / "cell_profiler_outputs"
+        job_ID = int(output.split(' ')[-1])
+        return job_ID, script_config['output_path']
 
     def cleanup(self):
         shutil.rmtree(self.working_dir)

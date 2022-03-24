@@ -14,6 +14,6 @@ from .celigo_single_image.celigo_single_image_core import (
     CeligoSingleImageCore,
 )
 
-from celigo_orchestration import *
+from .celigo_orchestration import *
 
 __all__ = "CeligoSingleImageCore"

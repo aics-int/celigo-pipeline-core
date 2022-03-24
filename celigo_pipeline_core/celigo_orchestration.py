@@ -3,7 +3,7 @@ import os
 from pathlib import Path
 import subprocess
 
-from . import CeligoSingleImageCore
+from celigo_single_image.celigo_single_image_core import CeligoSingleImageCore
 
 
 def run_all(raw_image_path):

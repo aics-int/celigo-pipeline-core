@@ -25,10 +25,10 @@ def run_all(raw_image_path):
 
 def job_complete_check(job_ID, endfile,name):
     job_status = "waiting"
+    count = 0
 
     while (not endfile.exists()) and job_status != "complete":
         time.sleep(3)
-        count = 0
         if (not (job_in_queue_check(job_ID))) and (job_status == "waiting"):
             job_status = "waiting"  # could change to pass
             print('waiting')
@@ -37,7 +37,7 @@ def job_complete_check(job_ID, endfile,name):
             job_status = "running"
             print(f"Job: {job_ID} {name} is running")
 
-        elif not endfile.exists() and count < 200: # add and max runtime hasnt been reached 
+        elif not endfile.exists() and count > 200: # add and max runtime hasnt been reached 
             job_status = "failed"
             print(f"Job: {job_ID} {name} has failed!")
             break

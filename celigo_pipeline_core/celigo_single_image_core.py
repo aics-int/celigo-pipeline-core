@@ -1,6 +1,7 @@
 import importlib.resources as pkg_resources
 import os
 from pathlib import Path
+import pwd
 import shutil
 import subprocess
 
@@ -30,14 +31,14 @@ class CeligoSingleImageCore:
 
         # Working Directory
         if not os.path.exists(
-            f"/home/brian.whitney/{self.tempdirname}" #TODO: CHANGE TO HOME/USER
+            f"/home/{pwd.getpwuid(os.getuid())[0]}/{self.tempdirname}" #TODO: CHANGE TO HOME/USER
         ):  # NEEDS TO CHANGE TO HOME/USER
             os.mkdir(
-                f"/home/brian.whitney/{self.tempdirname}" # TODO: CHANGE TO HOME/USER
+                f"/home/{pwd.getpwuid(os.getuid())[0]}/{self.tempdirname}" # TODO: CHANGE TO HOME/USER
             )  # NEEDS TO CHANGE TO HOME/USER
         # self.temp_dir = tempfile.TemporaryDirectory(dir='~/')
         self.working_dir = Path(
-            f"/home/brian.whitney/{self.tempdirname}" #TODO: CHANGE TO HOME/USER
+            f"/home/{pwd.getpwuid(os.getuid())[0]}/{self.tempdirname}" #TODO: CHANGE TO HOME/USER
         )  # NEEDS TO CHANGE TO HOME/USER
 
         # Image Paths

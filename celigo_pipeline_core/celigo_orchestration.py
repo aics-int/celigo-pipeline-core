@@ -2,6 +2,7 @@ from multiprocessing.connection import wait
 import os
 from pathlib import Path
 import subprocess
+from tabnanny import check
 
 from celigo_single_image_core import CeligoSingleImageCore
 
@@ -10,35 +11,17 @@ def run_all(raw_image_path):
 
     image = CeligoSingleImageCore(raw_image_path)
 
-    '''
-    Job_status = waiting
-
-    While endfile ! Exist & job ! in queue & job_status != ‘waiting’ :
-        
-        If job not in queue & Status != ‘running’:
-            Status = waiting
-        Elif job in queue
-            Status = running
-        Elif file ! exist
-            Status = Job 
-        else 
-            status = 'complete'
-    Rerun or Break	
-    '''
-
-    
-
-    image.downsample()
-
-    image.run_ilastik()
-
-    image.run_cellprofiler()
-
+    job_ID, output_file = image.downsample()
+    job_complete_check(job_ID,output_file)
+    job_ID, output_file = image.run_ilastik()
+    job_complete_check(job_ID,output_file)
+    job_ID, output_dir = image.run_cellprofiler()
+    job_complete_check(job_ID,output_dir)
     # Upload
 
     print("Complete")
 
-    def run_job(endfile,job_ID):
+    def job_complete_check(job_ID,endfile):
         job_status = 'waiting'
 
         while (not os.path.exists(endfile)) and job_status != 'complete':
@@ -55,6 +38,9 @@ def run_all(raw_image_path):
 
         if job_status is 'failed':
             x = 0
+            
     def job_in_queue_check(job_ID):
-        subprocess.run(["squeue", "-j", f"{job_ID}"])
+         output = subprocess.run(["squeue", "-j", f"{job_ID}"], check=True, capture_output=True) 
+         return output.stdout.decode("utf-8").count("\n") >= 2
+
         

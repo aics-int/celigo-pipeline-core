@@ -101,7 +101,7 @@ class CeligoSingleImageCore:
         )
 
         job_ID = int(output.stdout.decode("utf-8").split(" ")[-1][:-1])
-        return job_ID, script_config['output_path']
+        return job_ID, self.image_path
 
     def run_ilastik(self):
 
@@ -136,7 +136,7 @@ class CeligoSingleImageCore:
 
         self.filelist_path = self.working_dir / "filelist.txt"
         job_ID = int(output.stdout.decode("utf-8").split(" ")[-1][:-1])
-        return job_ID, script_config['output_path']
+        return job_ID, Path(f"{self.image_path.with_suffix('')}_probabilities.tiff")
 
     def run_cellprofiler(self):
 
@@ -168,7 +168,7 @@ class CeligoSingleImageCore:
         # Returns path to directory of cellprofiler outputs
         self.cell_profiler_output_path = self.working_dir / "cell_profiler_outputs"
         job_ID = int(output.stdout.decode("utf-8").split(" ")[-1][:-1])
-        return job_ID, script_config['output_dir']
+        return job_ID, script_config['output_dir'] #TODO change this to the last output
 
     def cleanup(self):
         shutil.rmtree(self.working_dir)

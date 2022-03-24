@@ -158,7 +158,7 @@ class CeligoSingleImageCore:
         # Generates script_body from existing templates.
         jinja_env = Environment(
             loader=PackageLoader(
-                package_name="celigo_pipeline_core", package_path="celigo_single_image/templates"
+                package_name="celigo_pipeline_core", package_path="templates"
             )
         )
         script_body = jinja_env.get_template("cellprofiler_template.j2").render(
@@ -181,7 +181,7 @@ class CeligoSingleImageCore:
         job_ID = int(output.stdout.decode("utf-8").split(" ")[-1][:-1])
         return (
             job_ID,
-            script_config["output_dir"],
+            Path(script_config["output_dir"])
         )  # TODO change this to the last output
 
     def cleanup(self):

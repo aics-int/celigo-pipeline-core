@@ -158,7 +158,7 @@ class CeligoSingleImageCore:
         # Generates script_body from existing templates.
         jinja_env = Environment(
             loader=PackageLoader(
-                package_name="celigo_pipeline_core", package_path="templates"
+                package_name="celigo_pipeline_core", package_path="celigo_single_image/templates"
             )
         )
         script_body = jinja_env.get_template("cellprofiler_template.j2").render(

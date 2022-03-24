@@ -67,7 +67,7 @@ setup(
     license="Allen Institute Software License",
     long_description=readme,
     long_description_content_type="text/markdown",
-    package_data={PACKAGE_NAME: ["celigo_single_image/templates/*", "celigo_single_image/pipelines/*"]}, # potentiall could not refrence now that files have changed
+    package_data={PACKAGE_NAME: ["templates/*", "pipelines/*"]}, # potentiall could not refrence now that files have changed
     keywords="celigo_pipeline_core",
     name="celigo_pipeline_core",
     packages=find_packages(exclude=["tests", "*.tests", "*.tests.*"]),

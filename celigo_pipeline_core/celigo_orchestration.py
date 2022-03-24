@@ -2,6 +2,8 @@ from multiprocessing.connection import wait
 import os
 from pathlib import Path
 import subprocess
+import time
+
 
 from .celigo_single_image import CeligoSingleImageCore
 
@@ -25,7 +27,7 @@ def job_complete_check(job_ID, endfile):
     job_status = "waiting"
 
     while (not endfile.exists()) and job_status != "complete":
-
+        time.sleep(3)
         if (not (job_in_queue_check(job_ID))) and (job_status == "waiting"):
             job_status = "waiting"  # could change to pass
             print('waiting')
@@ -37,6 +39,8 @@ def job_complete_check(job_ID, endfile):
         elif not endfile.exists():
             job_status = "failed"
             print(f"job {job_ID} is is failed!")
+
+            #need a condition of how long is the max time to wait before a rerun
 
         elif endfile.exists(): 
             job_status = 'complete'

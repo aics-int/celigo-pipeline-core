@@ -70,6 +70,11 @@ setup(
     package_data={
         PACKAGE_NAME: ["templates/*", "pipelines/*"]
     },  # potentiall could not refrence now that files have changed
+    entry_points={
+        "console_scripts": [
+            "celigo_pipeline_cli={}.bin.celigo_pipeline_core:main".format(PACKAGE_NAME),
+        ]
+    },
     keywords="celigo_pipeline_core",
     name="celigo_pipeline_core",
     packages=find_packages(exclude=["tests", "*.tests", "*.tests.*"]),

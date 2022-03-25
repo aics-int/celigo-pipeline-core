@@ -12,7 +12,7 @@ class Args(argparse.Namespace):
     def __init__(self):
         super().__init__()
         self.debug = False
-        self.image_path = ""
+        self.image_path = str()
 
         self.__parse()
 
@@ -37,6 +37,7 @@ class Args(argparse.Namespace):
             action="store_true",
         )
 
+        # make array with options
         p.add_argument(
             "--env",
             type=str,

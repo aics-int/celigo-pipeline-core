@@ -31,14 +31,12 @@ class CeligoSingleImageCore:
 
         # Working Directory
         if not os.path.exists(
-            f"/home/{pwd.getpwuid(os.getuid())[0]}/{self.tempdirname}" 
+            f"/home/{pwd.getpwuid(os.getuid())[0]}/{self.tempdirname}"
         ):
-            os.mkdir(
-                f"/home/{pwd.getpwuid(os.getuid())[0]}/{self.tempdirname}"  
-            )  
+            os.mkdir(f"/home/{pwd.getpwuid(os.getuid())[0]}/{self.tempdirname}")
         self.working_dir = Path(
-            f"/home/{pwd.getpwuid(os.getuid())[0]}/{self.tempdirname}"  
-        )  
+            f"/home/{pwd.getpwuid(os.getuid())[0]}/{self.tempdirname}"
+        )
 
         # Image Paths
         self.raw_image_path = Path(raw_image_path)
@@ -181,7 +179,7 @@ class CeligoSingleImageCore:
         job_ID = int(output.stdout.decode("utf-8").split(" ")[-1][:-1])
         return (
             job_ID,
-            Path(script_config["output_dir"])
+            Path(script_config["output_dir"]),
         )  # TODO change this to the last output
 
     def cleanup(self):

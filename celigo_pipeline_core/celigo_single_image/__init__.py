@@ -1,3 +1,5 @@
-from .celigo_single_image_core import CeligoSingleImageCore
+from .celigo_single_image_core import (
+    CeligoSingleImageCore,
+)
 
-__all__ = ("CeligoSingleImageCore")
+__all__ = "CeligoSingleImageCore"

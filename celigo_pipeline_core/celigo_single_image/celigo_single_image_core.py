@@ -60,9 +60,6 @@ class CeligoSingleImageCore:
             self.rescale_pipeline_path = p
         with pkg_resources.path(pipelines, "96_well_colony_pipeline.cppipe") as p:
             self.cellprofiler_pipeline_path = p
-        with pkg_resources.path(pipelines, "run_ilastik.sh") as p:
-            self.ilastik_sh_path = p
-
     def downsample(self):
         # Generates a filelist
         with open(self.working_dir / "resize_filelist.txt", "w+") as rfl:
@@ -113,7 +110,6 @@ class CeligoSingleImageCore:
         script_config = {
             "image_path": f"'{str( self.image_path)}'",
             "output_path": f"'{str(self.image_path.with_suffix(''))}_probabilities.tiff'",
-            "shell_path": str(self.ilastik_sh_path),
         }
 
         # Generates script_body from existing templates.

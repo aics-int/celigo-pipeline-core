@@ -21,7 +21,7 @@ def run_all(raw_image_path: pathlib.Path):
 
     print("Complete")
 
-    #  image.cleanup()
+    image.cleanup()
 
 
 # This function runs in between bash script calls to determine when the correct files are output

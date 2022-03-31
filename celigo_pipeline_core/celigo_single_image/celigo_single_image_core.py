@@ -64,7 +64,7 @@ class CeligoSingleImageCore:
         with pkg_resources.path(pipelines, "colony_morphology.model") as p:
             self.classification_model_path = p
 
-        '''
+       
         # replacing folder refrence location in cell profiler pipeline file with new location of classification model
         fin = open(self.cellprofiler_pipeline_path, "rt")
         data = fin.read()
@@ -82,7 +82,7 @@ class CeligoSingleImageCore:
         shutil.copyfile(
             self.cellprofiler_pipeline_path, f"{self.working_dir}/{self.cellprofiler_pipeline_path.name}"
         )
-        '''
+        
 
     def downsample(self):
         # Generates a filelist

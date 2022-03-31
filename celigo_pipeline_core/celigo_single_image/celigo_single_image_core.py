@@ -1,12 +1,12 @@
 import importlib.resources as pkg_resources
 import os
 from pathlib import Path
-import pandas as pd
 import pwd
 import shutil
 import subprocess
 
 from jinja2 import Environment, PackageLoader
+import pandas as pd
 
 from .. import pipelines
 
@@ -59,8 +59,29 @@ class CeligoSingleImageCore:
         # Pipeline paths for templates
         with pkg_resources.path(pipelines, "rescale_pipeline.cppipe") as p:
             self.rescale_pipeline_path = p
-        with pkg_resources.path(pipelines, "96_well_colony_pipeline.cppipe") as p:
+        with pkg_resources.path(pipelines, "96_well_colony_pipeline_v_0.1.cppipe") as p:
             self.cellprofiler_pipeline_path = p
+        with pkg_resources.path(pipelines, "colony_morphology.model") as p:
+            self.classification_model_path = p
+
+        # replacing folder refrence location in cell profiler pipeline file with new location of classification model
+        fin = open(self.classification_model_path, "rt")
+        data = fin.read()
+        data = data.replace(
+            "\\\\allen\\aics\\microscopy\\CellProfiler_4.1.3_Testing\\4.2.1_PipelineUpdate",
+            self.classification_model_path.parent,
+        )
+        fin.close()
+
+        fin = open(self.classification_model_path, "wt")
+        fin.write(data)
+        fin.close()
+        
+        # Temporary for testing
+        shutil.copyfile(
+            self.classification_model_path, f"{self.working_dir}/{self.classification_model_path.name}"
+        )
+
     def downsample(self):
         # Generates a filelist
         with open(self.working_dir / "resize_filelist.txt", "w+") as rfl:
@@ -183,20 +204,20 @@ class CeligoSingleImageCore:
         )  # TODO change this to the last output
 
     def upload_metrics(self):
-        # combine output metrics and send to database 
+        # combine output metrics and send to database
 
-
-        BallCraterDATA = pd.read_csv(self.cell_profiler_output_path / "BallCraterDATA.csv")
+        BallCraterDATA = pd.read_csv(
+            self.cell_profiler_output_path / "BallCraterDATA.csv"
+        )
         ColonyDATA = pd.read_csv(self.cell_profiler_output_path / "ColonyDATA.csv")
-        ImageDATA =  pd.read_csv(self.cell_profiler_output_path / "ImageDATA.csv")
-        ExperimentDATA =  pd.read_csv(self.cell_profiler_output_path / "ExperimentDATA.csv")
+        ImageDATA = pd.read_csv(self.cell_profiler_output_path / "ImageDATA.csv")
+        ExperimentDATA = pd.read_csv(
+            self.cell_profiler_output_path / "ExperimentDATA.csv"
+        )
 
         # combine metrics
 
-
         # Send to DB
-
-
 
     def cleanup(self):
         shutil.rmtree(self.working_dir)

@@ -21,13 +21,9 @@ def run_all(raw_image_path: pathlib.Path):
     job_complete_check(job_ID, output_dir, "cell profiler")
     image.cleanup()
 
-    
-    # Upload raw image with low priority 
-
+    # Upload raw image with low priority
 
     print("Complete")
-
-
 
 
 # This function runs in between bash script calls to determine when the correct files are output

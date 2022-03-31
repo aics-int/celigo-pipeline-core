@@ -1,6 +1,7 @@
 import importlib.resources as pkg_resources
 import os
 from pathlib import Path
+import pandas as pd
 import pwd
 import shutil
 import subprocess
@@ -180,6 +181,22 @@ class CeligoSingleImageCore:
             job_ID,
             Path(script_config["output_dir"]),
         )  # TODO change this to the last output
+
+    def upload_metrics(self):
+        # combine output metrics and send to database 
+
+
+        BallCraterDATA = pd.read_csv(self.cell_profiler_output_path / "BallCraterDATA.csv")
+        ColonyDATA = pd.read_csv(self.cell_profiler_output_path / "ColonyDATA.csv")
+        ImageDATA =  pd.read_csv(self.cell_profiler_output_path / "ImageDATA.csv")
+        ExperimentDATA =  pd.read_csv(self.cell_profiler_output_path / "ExperimentDATA.csv")
+
+        # combine metrics
+
+
+        # Send to DB
+
+
 
     def cleanup(self):
         shutil.rmtree(self.working_dir)

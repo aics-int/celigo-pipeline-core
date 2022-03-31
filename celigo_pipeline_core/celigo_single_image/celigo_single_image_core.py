@@ -59,7 +59,7 @@ class CeligoSingleImageCore:
         # Pipeline paths for templates
         with pkg_resources.path(pipelines, "rescale_pipeline.cppipe") as p:
             self.rescale_pipeline_path = p
-        with pkg_resources.path(pipelines, "96_well_colony_pipeline_v_0.1.cppipe") as p:
+        with pkg_resources.path(pipelines, "96_well_colony_pipeline.cppipe") as p:
             self.cellprofiler_pipeline_path = p
         with pkg_resources.path(pipelines, "colony_morphology.model") as p:
             self.classification_model_path = p
@@ -70,7 +70,7 @@ class CeligoSingleImageCore:
         data = fin.read()
         data = data.replace(
             "\\\\\\\\allen\\\\aics\\\\microscopy\\\\CellProfiler_4.1.3_Testing\\\\4.2.1_PipelineUpdate",
-            str(self.classification_model_path.parent),
+            "\\\\" + str(self.classification_model_path.parent).replace("/","\\\\"),
         )
 
         fin.close()

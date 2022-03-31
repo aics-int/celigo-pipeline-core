@@ -624,7 +624,7 @@ ClassifyObjects:[module_num:38|svn_version:'Unknown'|variable_revision_number:3|
     Retain an image of the classified objects?:No
     Enter the image name:None
     Save classes as new object sets?:Yes
-    Select the location of the classifier model file:Elsewhere...|\\\\allen\\aics\\microscopy\\CellProfiler_4.1.3_Testing\\4.2.1_PipelineUpdate
+    Select the location of the classifier model file:Elsewhere...|/allen/aics/microscopy/Aditya/repos/Celigo-Code-Record/celigo_pipeline_core/pipelines
     Rules or classifier file name:colony_morphology.model
 
 FilterObjects:[module_num:39|svn_version:'Unknown'|variable_revision_number:9|show_window:False|notes:[]|batch_state:array([], dtype=uint8)|enabled:False|wants_pause:False]

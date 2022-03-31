@@ -47,7 +47,7 @@ NamesAndTypes:[module_num:3|svn_version:'Unknown'|variable_revision_number:8|sho
     Select the image type:Grayscale image
     Set intensity range from:Image metadata
     Maximum intensity:255.0
-    Select the rule criteria:and (file does endwith "Probabilities.tiff")
+    Select the rule criteria:and (file does endwith "probabilities.tiff")
     Name to assign these images:Probabilities
     Name to assign these objects:Nucleus
     Select the image type:Color image

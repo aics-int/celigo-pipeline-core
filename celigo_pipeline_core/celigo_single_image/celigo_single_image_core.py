@@ -65,21 +65,21 @@ class CeligoSingleImageCore:
             self.classification_model_path = p
 
         # replacing folder refrence location in cell profiler pipeline file with new location of classification model
-        fin = open(self.classification_model_path, "rb")
+        fin = open(self.cellprofiler_pipeline_path, "rt")
         data = fin.read()
         data = data.replace(
-            "\\\\allen\\aics\\microscopy\\CellProfiler_4.1.3_Testing\\4.2.1_PipelineUpdate",
+            "\\\\\\\\allen\\\\aics\\\\microscopy\\\\CellProfiler_4.1.3_Testing\\\\4.2.1_PipelineUpdate",
             self.classification_model_path.parent,
         )
-        fin.close()
 
-        fin = open(self.classification_model_path, "wb")
+        fin.close()
+        fin = open(self.cellprofiler_pipeline_path, "wt")
         fin.write(data)
         fin.close()
 
         # Temporary for testing
         shutil.copyfile(
-            self.classification_model_path, f"{self.working_dir}/{self.classification_model_path.name}"
+            self.cellprofiler_pipeline_path, f"{self.working_dir}/{self.cellprofiler_pipeline_path.name}"
         )
 
     def downsample(self):

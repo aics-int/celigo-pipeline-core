@@ -69,7 +69,7 @@ class CeligoSingleImageCore:
         data = fin.read()
         data = data.replace(
             "\\\\\\\\allen\\\\aics\\\\microscopy\\\\CellProfiler_4.1.3_Testing\\\\4.2.1_PipelineUpdate",
-            self.classification_model_path.parent,
+            str(self.classification_model_path.parent),
         )
 
         fin.close()

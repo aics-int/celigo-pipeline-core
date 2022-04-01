@@ -22,8 +22,8 @@ def run_all(raw_image_path: pathlib.Path):
     job_complete_check(job_ID, output_file, "cell profiler")
     # job_ID, output_dir = image.upload_metrics()
     # job_complete_check(job_ID, output_dir, "cell profiler")
-    shutil.copytree(output_file.parent,upload_location)
-    os.rename(upload_location / "cell_profiler_outputs", upload_location / output_file.with_suffix("").name)
+    shutil.copytree(output_file.parent, upload_location / output_file.with_suffix("").name)
+    #os.rename(upload_location / "cell_profiler_outputs", upload_location / output_file.with_suffix("").name)
     # Upload raw image with low priority
     image.cleanup()
     print("Complete")

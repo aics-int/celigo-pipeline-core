@@ -77,12 +77,13 @@ class CeligoSingleImageCore:
         fin = open(self.cellprofiler_pipeline_path, "wt")
         fin.write(data)
         fin.close()
+        '''
         
         # Temporary for testing
         shutil.copyfile(
             self.cellprofiler_pipeline_path, f"{self.working_dir}/{self.cellprofiler_pipeline_path.name}"
         )
-        '''
+        
 
     def downsample(self):
         # Generates a filelist

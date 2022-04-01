@@ -198,7 +198,7 @@ class CeligoSingleImageCore:
         job_ID = int(output.stdout.decode("utf-8").split(" ")[-1][:-1])
         return (
             job_ID,
-            Path(f"{script_config['output_dir']}/{str(self.image_path.name)}_outlines.png"),
+            Path(f"{script_config['output_dir']}/{str(self.image_path.name.with_suffix(''))}_outlines.png"),
         )  # TODO change this to the last output
 
     def upload_metrics(self):

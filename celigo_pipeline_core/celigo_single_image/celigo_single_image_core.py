@@ -41,7 +41,6 @@ class CeligoSingleImageCore:
 
         # Image Paths
         self.raw_image_path = Path(raw_image_path)
-
         shutil.copyfile(
             self.raw_image_path, f"{self.working_dir}/{self.raw_image_path.name}"
         )
@@ -59,31 +58,27 @@ class CeligoSingleImageCore:
         # Pipeline paths for templates
         with pkg_resources.path(pipelines, "rescale_pipeline.cppipe") as p:
             self.rescale_pipeline_path = p
-        with pkg_resources.path(pipelines, "96_well_colony_pipeline_v_0.1.cppipe") as p:
-            self.cellprofiler_pipeline_path = p
         with pkg_resources.path(pipelines, "colony_morphology.model") as p:
             self.classification_model_path = p
 
-        '''
-        # replacing folder refrence location in cell profiler pipeline file with new location of classification model
-        fin = open(self.cellprofiler_pipeline_path, "rt")
-        data = fin.read()
-        data = data.replace(
-            "\\\\\\\\allen\\\\aics\\\\microscopy\\\\CellProfiler_4.1.3_Testing\\\\4.2.1_PipelineUpdate",
-            str(self.classification_model_path.parent),
+        script_config = {
+            "classifier_path": str(self.classification_model_path),
+        }
+
+        jinja_env = Environment(
+            loader=PackageLoader(
+                package_name="celigo_pipeline_core", package_path="templates"
+            )
+        )
+        script_body = jinja_env.get_template("96_well_pipeline_v1.0_tempalate.j2").render(
+            script_config
         )
 
-        fin.close()
-        fin = open(self.cellprofiler_pipeline_path, "wt")
-        fin.write(data)
-        fin.close()
-        '''
-        
-        # Temporary for testing
-        shutil.copyfile(
-            self.cellprofiler_pipeline_path, f"{self.working_dir}/{self.cellprofiler_pipeline_path.name}"
-        )
-        
+        # Creates .cppipe script locally.
+        with open(self.working_dir / "96_well_colony_pipeline_v_0.1.cppipe", "w+") as rsh:
+            rsh.write(script_body)
+
+        self.cellprofiler_pipeline_path = self.working_dir / "96_well_colony_pipeline_v_0.1.cppipe"
 
     def downsample(self):
         # Generates a filelist

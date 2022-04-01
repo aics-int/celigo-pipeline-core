@@ -12,3 +12,5 @@ conda activate cellprofiler_v4.2.1
 
 # run CellProfiler
 cellprofiler -r -c -p {{ pipeline_path }} --file-list {{ filelist_path }} -o {{ output_dir }}
+
+# need to remove refrences to things on the isilon. Currently cannot import these with package.

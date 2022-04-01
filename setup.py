@@ -86,6 +86,6 @@ setup(
     url="https://github.com/aics-int/Celigo-Code-Record",
     # Do not edit this string manually, always use bumpversion
     # Details in CONTRIBUTING.rst
-    version="1.2.1",
+    version="1.3.0",
     zip_safe=False,
 )

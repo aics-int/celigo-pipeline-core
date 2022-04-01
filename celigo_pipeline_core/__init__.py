@@ -2,7 +2,7 @@ __author__ = "AICS"
 
 # Do not edit this string manually, always use bumpversion
 # Details in CONTRIBUTING.md
-__version__ = "1.3.0"
+__version__ = "1.3.1"
 
 
 def get_module_version():

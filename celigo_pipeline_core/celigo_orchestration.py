@@ -1,6 +1,9 @@
 import pathlib
+import shutil
 import subprocess
 import time
+import pathlib
+import os
 
 from .celigo_single_image import (
     CeligoSingleImageCore,
@@ -8,21 +11,22 @@ from .celigo_single_image import (
 
 
 def run_all(raw_image_path: pathlib.Path):
-
+    upload_location = pathlib.Path('/allen/aics/microscopy/PRODUCTION/Celigo_Metric_Output"')
     image = CeligoSingleImageCore(raw_image_path)
 
     job_ID, output_file = image.downsample()
     job_complete_check(job_ID, output_file, "downsample")
     job_ID, output_file = image.run_ilastik()
     job_complete_check(job_ID, output_file, "ilastik")
-    job_ID, output_dir = image.run_cellprofiler()
-    job_complete_check(job_ID, output_dir, "cell profiler")
+    job_ID, output_file = image.run_cellprofiler()
+    job_complete_check(job_ID, output_file, "cell profiler")
     # job_ID, output_dir = image.upload_metrics()
     # job_complete_check(job_ID, output_dir, "cell profiler")
-    # image.cleanup()
-
+    
+    shutil.copytree(output_file.parent,upload_location)
+    os.rename(upload_location / 'cell_profiler_outputs', output_file.with_suffix("")) # TODO: change the expected name 
     # Upload raw image with low priority
-
+    image.cleanup()
     print("Complete")
 
 

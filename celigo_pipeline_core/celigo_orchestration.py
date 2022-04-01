@@ -11,7 +11,7 @@ from .celigo_single_image import (
 
 
 def run_all(raw_image_path: pathlib.Path):
-    upload_location = pathlib.Path('/allen/aics/microscopy/PRODUCTION/Celigo_Metric_Output"')
+    upload_location = pathlib.Path('/allen/aics/microscopy/PRODUCTION/Celigo_Metric_Output')
     image = CeligoSingleImageCore(raw_image_path)
 
     job_ID, output_file = image.downsample()

@@ -19,7 +19,7 @@ def run_all(raw_image_path: pathlib.Path):
     job_complete_check(job_ID, output_dir, "cell profiler")
     # job_ID, output_dir = image.upload_metrics()
     # job_complete_check(job_ID, output_dir, "cell profiler")
-    # image.cleanup()
+    image.cleanup()
 
     # Upload raw image with low priority
 

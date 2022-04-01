@@ -3,7 +3,7 @@ import logging
 import sys
 import traceback
 
-from ..celigo_orchestration import run_all
+from celigo_pipeline_core.celigo_orchestration import run_all
 
 log = logging.getLogger()
 

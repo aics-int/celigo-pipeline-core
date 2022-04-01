@@ -62,7 +62,7 @@ class CeligoSingleImageCore:
             self.classification_model_path = p
 
         script_config = {
-            "classifier_path": str(self.classification_model_path),
+            "classifier_path": str(self.classification_model_path.parent),
         }
 
         jinja_env = Environment(

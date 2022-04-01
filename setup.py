@@ -1,7 +1,7 @@
 #!/usr/bin/env python
 # -*- coding: utf-8 -*-
 
-MODULE_VERSION = "1.2.0"
+MODULE_VERSION = "1.2.1"
 PACKAGE_NAME = "celigo_pipeline_core"
 
 """The setup script."""
@@ -72,7 +72,7 @@ setup(
     },  # potentiall could not refrence now that files have changed
     entry_points={
         "console_scripts": [
-            "celigo_pipeline_cli={}.bin.celigo_pipeline_core:main".format(PACKAGE_NAME),
+            "celigo_pipeline_cli={}.bin.celigo_pipeline_core_cli:main".format(PACKAGE_NAME),
         ]
     },
     keywords="celigo_pipeline_core",
@@ -86,6 +86,6 @@ setup(
     url="https://github.com/aics-int/Celigo-Code-Record",
     # Do not edit this string manually, always use bumpversion
     # Details in CONTRIBUTING.rst
-    version="1.2.0",
+    version="1.2.1",
     zip_safe=False,
 )

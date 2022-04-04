@@ -13,7 +13,6 @@ class Args(argparse.Namespace):
         super().__init__()
         self.debug = False
         self.image_path = str()
-
         self.__parse()
 
     def __parse(self):
@@ -24,6 +23,7 @@ class Args(argparse.Namespace):
 
         p.add_argument(
             "--image_path",
+            dest = 'image_path',
             type=str,
             help="Image file location on local computer (Image for Processing)",
             required=True,
@@ -46,6 +46,7 @@ class Args(argparse.Namespace):
             required=False,
         )
 
+        p.parse_args(namespace=self)
     ###############################################################################
 
 

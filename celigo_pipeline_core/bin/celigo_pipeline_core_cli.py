@@ -23,7 +23,7 @@ class Args(argparse.Namespace):
 
         p.add_argument(
             "--image_path",
-            dest = 'image_path',
+            dest="image_path",
             type=str,
             help="Image file location on local computer (Image for Processing)",
             required=True,
@@ -47,6 +47,7 @@ class Args(argparse.Namespace):
         )
 
         p.parse_args(namespace=self)
+
     ###############################################################################
 
 

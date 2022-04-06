@@ -70,15 +70,19 @@ class CeligoSingleImageCore:
                 package_name="celigo_pipeline_core", package_path="templates"
             )
         )
-        script_body = jinja_env.get_template("96_well_pipeline_v1.0_tempalate.j2").render(
-            script_config
-        )
+        script_body = jinja_env.get_template(
+            "96_well_pipeline_v1.0_tempalate.j2"
+        ).render(script_config)
 
         # Creates .cppipe script locally.
-        with open(self.working_dir / "96_well_colony_pipeline_v_0.1.cppipe", "w+") as rsh:
+        with open(
+            self.working_dir / "96_well_colony_pipeline_v_0.1.cppipe", "w+"
+        ) as rsh:
             rsh.write(script_body)
 
-        self.cellprofiler_pipeline_path = self.working_dir / "96_well_colony_pipeline_v_0.1.cppipe"
+        self.cellprofiler_pipeline_path = (
+            self.working_dir / "96_well_colony_pipeline_v_0.1.cppipe"
+        )
 
     def downsample(self):
         # Generates a filelist
@@ -198,7 +202,9 @@ class CeligoSingleImageCore:
         job_ID = int(output.stdout.decode("utf-8").split(" ")[-1][:-1])
         return (
             job_ID,
-            Path(f"{script_config['output_dir']}/{self.image_path.with_suffix('').name}_outlines.png"),
+            Path(
+                f"{script_config['output_dir']}/{self.image_path.with_suffix('').name}_outlines.png"
+            ),
         )  # TODO change this to the last output
 
     def upload_metrics(self):

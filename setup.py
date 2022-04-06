@@ -72,7 +72,9 @@ setup(
     },  # potentiall could not refrence now that files have changed
     entry_points={
         "console_scripts": [
-            "celigo_pipeline_cli={}.bin.celigo_pipeline_core_cli:main".format(PACKAGE_NAME),
+            "celigo_pipeline_cli={}.bin.celigo_pipeline_core_cli:main".format(
+                PACKAGE_NAME
+            ),
         ]
     },
     keywords="celigo_pipeline_core",

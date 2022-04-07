@@ -1,5 +1,6 @@
 import importlib.resources as pkg_resources
 import os
+import pathlib
 from pathlib import Path
 import pwd
 import shutil
@@ -12,25 +13,25 @@ from .. import pipelines
 
 
 class CeligoSingleImageCore:
-
-    """
-    This Class provides utility functions for the Celigo
-    pipeline to prepare single images for:
-
-    1) Ilastik Processing
-
-    2) Cell Profiler Processing
-
-    Given its large processing needs it is set up to run on slurm
+    """This Class provides utility functions for the Celigo
+    pipeline to prepare single celigo images.
 
     """
 
-    def __init__(self, raw_image_path):
+    def __init__(self, raw_image_path: str) -> None:
+        """Constructor.
 
-        # Specific name of experiment
+        Parameters
+        ----------
+        raw_image_path : str
+            Optical control image that will be used to generate an alignment matrix.
+            Passed as-is to aicsimageio.AICSImage constructor.
+        """
+
+        # Directory Name, used to create working directory.
         self.tempdirname = Path(raw_image_path).with_suffix("").name
 
-        # Working Directory
+        # Working Directory Creation
         if not os.path.exists(
             f"/home/{pwd.getpwuid(os.getuid())[0]}/{self.tempdirname}"
         ):
@@ -39,32 +40,31 @@ class CeligoSingleImageCore:
             f"/home/{pwd.getpwuid(os.getuid())[0]}/{self.tempdirname}"
         )
 
-        # Image Paths
+        # Copying Image to working directory.
         self.raw_image_path = Path(raw_image_path)
         shutil.copyfile(
             self.raw_image_path, f"{self.working_dir}/{self.raw_image_path.name}"
         )
         self.image_path = Path(f"{self.working_dir}/{self.raw_image_path.name}")
 
-        # Future resource paths
-        self.filelist_path = Path()
-        self.resize_filelist_path = Path()
-        self.cell_profiler_output_path = Path()
+        # Future resources:
+        # self.filelist_path = Path()
+        # self.resize_filelist_path = Path()
+        # self.cell_profiler_output_path = Path()
+        # self.downsample_job_ID = int()
+        # self.ilastik_job_ID = int()
+        # self.cellprofiler_job_ID = int()
 
-        self.downsample_job_ID = int()
-        self.ilastik_job_ID = int()
-        self.cellprofiler_job_ID = int()
-
-        # Pipeline paths for templates
+        # Creating pipeline paths for templates
         with pkg_resources.path(pipelines, "rescale_pipeline.cppipe") as p:
             self.rescale_pipeline_path = p
         with pkg_resources.path(pipelines, "colony_morphology.model") as p:
             self.classification_model_path = p
 
+        # Creating template for 96 well processing
         script_config = {
             "classifier_path": str(self.classification_model_path.parent),
         }
-
         jinja_env = Environment(
             loader=PackageLoader(
                 package_name="celigo_pipeline_core", package_path="templates"
@@ -73,22 +73,27 @@ class CeligoSingleImageCore:
         script_body = jinja_env.get_template(
             "96_well_pipeline_v1.0_tempalate.j2"
         ).render(script_config)
-
-        # Creates .cppipe script locally.
         with open(
             self.working_dir / "96_well_colony_pipeline_v_0.1.cppipe", "w+"
         ) as rsh:
             rsh.write(script_body)
-
         self.cellprofiler_pipeline_path = (
             self.working_dir / "96_well_colony_pipeline_v_0.1.cppipe"
         )
 
-    def downsample(self):
-        # Generates a filelist
+    def downsample(self) -> tuple[int, pathlib.Path]:
+        """Align channels within `image` using similarity transform generated from the optical control image passed to
+        this instance at construction. Scenes within `image` will be saved to their own image files once aligned.
+
+        Returns
+        -------
+        tuple[int,pathlib.Path]
+            A list of namedtuples, each of which describes a scene within `image` that was aligned.
+        """
+
+        # Generates filelist for resize pipeline
         with open(self.working_dir / "resize_filelist.txt", "w+") as rfl:
             rfl.write(str(self.image_path) + "\n")
-
         self.resize_filelist_path = self.working_dir / "resize_filelist.txt"
 
         # Defines variables for bash script
@@ -128,7 +133,15 @@ class CeligoSingleImageCore:
         job_ID = int(output.stdout.decode("utf-8").split(" ")[-1][:-1])
         return job_ID, self.image_path
 
-    def run_ilastik(self):
+    def run_ilastik(self) -> tuple[int, pathlib.Path]:
+        """Align channels within `image` using similarity transform generated from the optical control image passed to
+        this instance at construction. Scenes within `image` will be saved to their own image files once aligned.
+
+        Returns
+        -------
+        tuple[int,pathlib.Path]
+            A list of namedtuples, each of which describes a scene within `image` that was aligned.
+        """
 
         # Parameters to input to bash script template
         script_config = {
@@ -136,22 +149,19 @@ class CeligoSingleImageCore:
             "output_path": f"'{str(self.image_path.with_suffix(''))}_probabilities.tiff'",
         }
 
-        # Generates script_body from existing templates.
+        # Generates script for SLURM submission from templates.
         jinja_env = Environment(
             loader=PackageLoader(
                 package_name="celigo_pipeline_core", package_path="templates"
             )
         )
-
         script_body = jinja_env.get_template("ilastik_template.j2").render(
             script_config
         )
-
-        # Creates bash script locally.
         with open(self.working_dir / "ilastik.sh", "w+") as rsh:
             rsh.write(script_body)
 
-        # Runs ilastik on slurm
+        # Submit bash script ilastik.sh on SLURM
         output = subprocess.run(
             ["sbatch", f"{str(self.working_dir)}/ilastik.sh"],
             check=True,
@@ -167,7 +177,16 @@ class CeligoSingleImageCore:
         job_ID = int(output.stdout.decode("utf-8").split(" ")[-1][:-1])
         return job_ID, Path(f"{self.image_path.with_suffix('')}_probabilities.tiff")
 
-    def run_cellprofiler(self):
+    def run_cellprofiler(self) -> tuple[int, pathlib.Path]:
+        """Align channels within `image` using similarity transform generated from the optical control image passed to
+        this instance at construction. Scenes within `image` will be saved to their own image files once aligned.
+
+        Returns
+        -------
+        tuple[int,pathlib.Path]
+            A list of namedtuples, The first of which contains the resultant SLURM job ID call and
+            the seconnd containing a Path in the working directory pointing to the output file
+        """
 
         # Parameters to input to bash script template.
         script_config = {
@@ -176,7 +195,7 @@ class CeligoSingleImageCore:
             "pipeline_path": str(self.cellprofiler_pipeline_path),
         }
 
-        # Generates script_body from existing templates.
+        # Generates script for SLURM submission from templates.
         jinja_env = Environment(
             loader=PackageLoader(
                 package_name="celigo_pipeline_core", package_path="templates"
@@ -185,27 +204,28 @@ class CeligoSingleImageCore:
         script_body = jinja_env.get_template("cellprofiler_template.j2").render(
             script_config
         )
-
-        # Creates bash script locally.
         with open(self.working_dir / "cellprofiler.sh", "w+") as rsh:
             rsh.write(script_body)
 
-        # Runs cellprofiler on slurm
+        # Submit bash script cellprofiler.sh on SLURM
         output = subprocess.run(
             ["sbatch", f"{str(self.working_dir)}/cellprofiler.sh"],
             check=True,
             capture_output=True,
         )
 
-        # Returns path to directory of cellprofiler outputs
+        # Set output path
         self.cell_profiler_output_path = self.working_dir / "cell_profiler_outputs"
+
+        # Splits job id int from output
         job_ID = int(output.stdout.decode("utf-8").split(" ")[-1][:-1])
+
         return (
             job_ID,
             Path(
                 f"{script_config['output_dir']}/{self.image_path.with_suffix('').name}_outlines.png"
             ),
-        )  # TODO change this to the last output
+        )
 
     def upload_metrics(self):
         # combine output metrics and send to database

@@ -81,7 +81,7 @@ class CeligoSingleImageCore:
             self.working_dir / "96_well_colony_pipeline_v_0.1.cppipe"
         )
 
-    def downsample(self) -> tuple[int, pathlib.Path]:
+    def downsample(self):
         """Align channels within `image` using similarity transform generated from the optical control image passed to
         this instance at construction. Scenes within `image` will be saved to their own image files once aligned.
 
@@ -133,7 +133,7 @@ class CeligoSingleImageCore:
         job_ID = int(output.stdout.decode("utf-8").split(" ")[-1][:-1])
         return job_ID, self.image_path
 
-    def run_ilastik(self) -> tuple[int, pathlib.Path]:
+    def run_ilastik(self):
         """Align channels within `image` using similarity transform generated from the optical control image passed to
         this instance at construction. Scenes within `image` will be saved to their own image files once aligned.
 
@@ -177,7 +177,7 @@ class CeligoSingleImageCore:
         job_ID = int(output.stdout.decode("utf-8").split(" ")[-1][:-1])
         return job_ID, Path(f"{self.image_path.with_suffix('')}_probabilities.tiff")
 
-    def run_cellprofiler(self) -> tuple[int, pathlib.Path]:
+    def run_cellprofiler(self):
         """Align channels within `image` using similarity transform generated from the optical control image passed to
         this instance at construction. Scenes within `image` will be saved to their own image files once aligned.
 

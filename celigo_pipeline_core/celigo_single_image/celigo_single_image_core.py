@@ -227,7 +227,7 @@ class CeligoSingleImageCore:
             ),
         )
 
-    def upload_metrics(self, metadata):
+    def upload_metrics(self, metadata : dict):
 
         # Building Metric Output from Cellprofiler outputs 
         ColonyDATA = pd.read_csv(self.cell_profiler_output_path / "ColonyDATA.csv")
@@ -242,6 +242,7 @@ class CeligoSingleImageCore:
         result['Metadata_Plate'] = metadata['plate_barcode']
         result['Metadata_Well'] = metadata['well_id']
 
+        return result
         # Send to DB (1 tables)
 
     def cleanup(self):

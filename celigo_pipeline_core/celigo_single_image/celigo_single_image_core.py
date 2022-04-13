@@ -5,9 +5,12 @@ from pathlib import Path
 import pwd
 import shutil
 import subprocess
+import psycopg2
+import psycopg2.extras as extras
 
 from jinja2 import Environment, PackageLoader
 import pandas as pd
+from pipeline_uploaders import CeligoUploader
 
 from .. import pipelines
 
@@ -227,23 +230,48 @@ class CeligoSingleImageCore:
             ),
         )
 
-    def upload_metrics(self, metadata : dict):
+    def upload_metrics(self):
+        table_name = 'Celigo_96_Well_Data_Test'
+        celigo_image = CeligoUploader(self.raw_image_path)
+        metadata = celigo_image.metadata['microscopy']
 
         # Building Metric Output from Cellprofiler outputs 
         ColonyDATA = pd.read_csv(self.cell_profiler_output_path / "ColonyDATA.csv")
         ImageDATA = pd.read_csv(self.cell_profiler_output_path / "ImageDATA.csv")
+
+        # formatting 
         ColonyDATA = ColonyDATA[ColonyDATA.columns.drop(list(ColonyDATA.filter(regex='Metadata')))]
-        ColonyDATA = ColonyDATA.drop('ImageNumber', axis=1)
-        result = pd.merge(ColonyDATA, ImageDATA, how="cross")
-
-        # Adding Metadata
-
-        result['Metadata_DateString'] = metadata['celigo']['scan_date'] + " " + metadata['celigo']['scan_time']
-        result['Metadata_Plate'] = metadata['plate_barcode']
-        result['Metadata_Well'] = metadata['well_id']
-
-        return result
+        ColonyDATA['Metadata_DateString'] = metadata['celigo']['scan_date'] + " " + metadata['celigo']['scan_time']
+        ColonyDATA['Metadata_Plate'] =  metadata['plate_barcode']
+        ColonyDATA['Metadata_Well'] = celigo_image.well
+        result = pd.merge(ColonyDATA, ImageDATA, how="left", on = "ImageNumber")
+        result = result.drop(columns = ['ImageNumber'])
+        
+        conn = psycopg2.connect(database = 'pg_microscopy', user = 'rw', password = '', host = 'pg-aics-microscopy-01.corp.alleninstitute.org', port = '5432')
+        self.add_to_SQL_table(conn, result, table_name)
         # Send to DB (1 tables)
+
+    @staticmethod
+    def add_to_SQL_table(conn, df, table):
+    
+        tuples = [tuple(x) for x in df.to_numpy()]
+    
+        cols = ','.join(list(df.columns))
+        # SQL query to execute
+        query = "INSERT INTO %s(%s) VALUES %%s" % (table, cols)
+        cursor = conn.cursor()
+        try:
+            extras.execute_values(cursor, query, tuples)
+            conn.commit()
+        except (Exception, psycopg2.DatabaseError) as error:
+            print("Error: %s" % error)
+            conn.rollback()
+            cursor.close()
+            return 1
+        print("the dataframe is inserted")
+        cursor.close()
+
+
 
     def cleanup(self):
         shutil.rmtree(self.working_dir)

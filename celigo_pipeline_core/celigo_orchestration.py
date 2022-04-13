@@ -39,16 +39,13 @@ def run_all(
     job_complete_check(job_ID, output_file, "ilastik")
     job_ID, output_file = image.run_cellprofiler()
     job_complete_check(job_ID, output_file, "cell profiler")
-
-    celigo_img = CeligoUploader(raw_image_path)
-
-    image.upload_metrics(celigo_img.metadata)
+    image.upload_metrics()
     image.cleanup()
     
     # shutil.copytree(output_file.parent, upload_location / output_file.with_suffix("").name)
 
-    # Upload raw image with low priority
-    celigo_img.upload()
+    # Upload This might need to be called on a diffrent call if they are running in sucession. 
+    # Consider returning celigo_img appending to a list and calling upload from there.
 
     print("Complete")
 

@@ -238,7 +238,7 @@ class CeligoSingleImageCore:
 
         # Adding Metadata
 
-        result['Metadata_DateString'] = metadata['celigo']['scan_date'] + " " + metadata['celigo']['time_date']
+        result['Metadata_DateString'] = metadata['celigo']['scan_date'] + " " + metadata['celigo']['scan_time']
         result['Metadata_Plate'] = metadata['plate_barcode']
         result['Metadata_Well'] = metadata['well_id']
 

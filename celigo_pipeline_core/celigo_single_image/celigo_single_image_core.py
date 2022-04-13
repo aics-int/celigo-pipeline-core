@@ -227,21 +227,22 @@ class CeligoSingleImageCore:
             ),
         )
 
-    def upload_metrics(self):
-        # combine output metrics and send to database
+    def upload_metrics(self, metadata):
 
-        BallCraterDATA = pd.read_csv(
-            self.cell_profiler_output_path / "BallCraterDATA.csv"
-        )
+        # Building Metric Output from Cellprofiler outputs 
         ColonyDATA = pd.read_csv(self.cell_profiler_output_path / "ColonyDATA.csv")
         ImageDATA = pd.read_csv(self.cell_profiler_output_path / "ImageDATA.csv")
-        ExperimentDATA = pd.read_csv(
-            self.cell_profiler_output_path / "ExperimentDATA.csv"
-        )
+        ColonyDATA = ColonyDATA[ColonyDATA.columns.drop(list(ColonyDATA.filter(regex='Metadata')))]
+        ColonyDATA = ColonyDATA.drop('ImageNumber', axis=1)
+        result = pd.merge(ColonyDATA, ImageDATA, how="cross")
 
-        # combine metrics
+        # Adding Metadata
 
-        # Send to DB
+        result['Metadata_DateString'] = metadata['celigo']['scan_date'] + " " + metadata['celigo']['time_date']
+        result['Metadata_Plate'] = metadata['plate_barcode']
+        result['Metadata_Well'] = metadata['well_id']
+
+        # Send to DB (1 tables)
 
     def cleanup(self):
         shutil.rmtree(self.working_dir)

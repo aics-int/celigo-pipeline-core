@@ -3,6 +3,7 @@ import pathlib
 import shutil
 import subprocess
 import time
+from pipeline_uploaders import CeligoUploader 
 
 from .celigo_single_image import (
     CeligoSingleImageCore,
@@ -39,12 +40,16 @@ def run_all(
     job_ID, output_file = image.run_cellprofiler()
     job_complete_check(job_ID, output_file, "cell profiler")
 
-    # Temporary until upload location is specified.
-    shutil.copytree(
-        output_file.parent, upload_location / output_file.with_suffix("").name
-    )
-    # Upload raw image with low priority
+    celigo_img = CeligoUploader(raw_image_path)
+
+    image.upload_metrics(celigo_img.metadata)
     image.cleanup()
+    
+    # shutil.copytree(output_file.parent, upload_location / output_file.with_suffix("").name)
+
+    # Upload raw image with low priority
+    celigo_img.upload()
+
     print("Complete")
 
 

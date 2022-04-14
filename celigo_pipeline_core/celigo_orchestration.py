@@ -1,9 +1,11 @@
-import os
 import pathlib
+from pathlib import Path
+import psycopg2
 import shutil
 import subprocess
 import time
-from pipeline_uploaders import CeligoUploader 
+
+from aics_pipeline_uploaders import CeligoUploader
 
 from .celigo_single_image import (
     CeligoSingleImageCore,
@@ -11,8 +13,7 @@ from .celigo_single_image import (
 
 
 def run_all(
-    raw_image_path: pathlib.Path,
-    upload_location: pathlib.Path = "/allen/aics/microscopy/PRODUCTION/Celigo_Metric_Output",
+    raw_image_path: str,
 ):
     """Process Celigo Images from `raw_image_path`. Submits jobs for Image Downsampling,
     Image Ilastik Processing, and Image Celigo Processing. After job completion,
@@ -21,7 +22,7 @@ def run_all(
     Parameters
     ----------
     raw_image_path : pathlib.Path
-        Path must poinntn a .Tiff image produced by the Celigo camera. Path must be accessable
+        Path must point to a .Tiff image produced by the Celigo camera. Path must be accessable
         from SLURM (ISILON[OK])
 
     Keyword Arguments
@@ -33,21 +34,68 @@ def run_all(
 
     image = CeligoSingleImageCore(raw_image_path)
 
-    job_ID, output_file = image.downsample()
-    job_complete_check(job_ID, output_file, "downsample")
-    job_ID, output_file = image.run_ilastik()
-    job_complete_check(job_ID, output_file, "ilastik")
-    job_ID, output_file = image.run_cellprofiler()
-    job_complete_check(job_ID, output_file, "cell profiler")
-    image.upload_metrics()
-    image.cleanup()
-    
-    # shutil.copytree(output_file.parent, upload_location / output_file.with_suffix("").name)
+    upload_location = Path(raw_image_path).parent
 
-    # Upload This might need to be called on a diffrent call if they are running in sucession. 
-    # Consider returning celigo_img appending to a list and calling upload from there.
+    job_ID, downsample_output_file_path = image.downsample()
+    job_complete_check(job_ID, downsample_output_file_path, "downsample")
+    job_ID, ilastik_output_file_path = image.run_ilastik()
+    job_complete_check(job_ID, ilastik_output_file_path, "ilastik")
+    job_ID, cellprofiler_output_file_path = image.run_cellprofiler()
+    job_complete_check(job_ID, cellprofiler_output_file_path, "cell profiler")
+    image.upload_metrics()
+
+    shutil.copyfile(
+        ilastik_output_file_path.parent, upload_location / ilastik_output_file_path.name
+    )
+    shutil.copyfile(
+        cellprofiler_output_file_path.parent,
+        upload_location / cellprofiler_output_file_path.name,
+    )
+
+    image.cleanup()
+
+    # Low Priority Upload submitted to slurm (upload(x,y,z))
 
     print("Complete")
+
+
+def upload(
+    raw_image_path: pathlib.Path,
+    probabilities_image_path: pathlib.Path,
+    outlines_image_path: pathlib.Path,
+):
+    raw_file_type = "Tiff Image"
+    probabilities_file_type = "Probability Map"
+    outlines_file_type = "Outline PNG"
+
+    Metadata = {}
+
+    if raw_image_path.is_file():
+        Metadata["RawCeligoFMSId"] = CeligoUploader(
+            raw_image_path, raw_file_type
+        ).upload()
+
+    if probabilities_image_path.is_file():
+        Metadata["ProbabilitiesMapFMSId"] = CeligoUploader(
+            probabilities_image_path, probabilities_file_type
+        ).upload()
+
+    if outlines_image_path.is_file():
+        Metadata["OutlinesFMSId"] = CeligoUploader(
+            outlines_image_path, outlines_file_type
+        ).upload()
+
+    # Add to database
+    conn = psycopg2.connect(
+        database="pg_microscopy",
+        user="rw",
+        password="",
+        host="pg-aics-microscopy-01.corp.alleninstitute.org",
+        port="5432",
+    )
+
+    conn.cursor()
+    # clean up images
 
 
 def job_complete_check(
@@ -63,7 +111,7 @@ def job_complete_check(
         Job has been sucessfully submitted to SLURM and is currently in the queue. This is not
         an indicator of sucess, only that the given job was submitted
     3) Status : failed
-        Job has failed, the specified `endfile ` was not created within the specified time
+        Job has failed, the specified `endfile` was not created within the specified time
         criteria. Most likely after this time it will never complete.
     4) Status : complete
         Job has completed! and it is ok to use the endfile locationn for further processing

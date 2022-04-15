@@ -229,7 +229,7 @@ class CeligoSingleImageCore:
             ),
         )
 
-    def upload_metrics(self):
+    def upload_metrics(self)-> str:
         table_name = '"Celigo_96_Well_Data_Test"'
         celigo_image = CeligoUploader(self.raw_image_path)
         metadata = celigo_image.metadata["microscopy"]
@@ -247,6 +247,7 @@ class CeligoSingleImageCore:
         )
         ColonyDATA["Metadata_Plate"] = metadata["plate_barcode"]
         ColonyDATA["Metadata_Well"] = celigo_image.well
+        ColonyDATA['Experiment ID'] = 'PROXY_ID'
         result = pd.merge(ColonyDATA, ImageDATA, how="left", on="ImageNumber")
         result = result.drop(columns=["ImageNumber"])
 
@@ -262,6 +263,8 @@ class CeligoSingleImageCore:
             port="5432",
         )
         self.add_to_SQL_table(conn, result, table_name)
+
+        return result['Experiment ID']
         # Send to DB (1 tables)
 
     @staticmethod

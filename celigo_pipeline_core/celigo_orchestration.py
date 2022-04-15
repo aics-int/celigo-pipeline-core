@@ -1,9 +1,13 @@
+from importlib import metadata
 import pathlib
 from pathlib import Path
 import psycopg2
+import psycopg2.extras as extras
 import shutil
 import subprocess
 import time
+import os
+import pandas as pd
 
 from aics_pipeline_uploaders import CeligoUploader
 
@@ -11,6 +15,7 @@ from .celigo_single_image import (
     CeligoSingleImageCore,
 )
 
+TABLE_NAME = 'table_name'
 
 def run_all(
     raw_image_path: str,
@@ -42,19 +47,27 @@ def run_all(
     job_complete_check(job_ID, ilastik_output_file_path, "ilastik")
     job_ID, cellprofiler_output_file_path = image.run_cellprofiler()
     job_complete_check(job_ID, cellprofiler_output_file_path, "cell profiler")
-    image.upload_metrics()
+    index = image.upload_metrics()
 
     shutil.copyfile(
-        ilastik_output_file_path.parent, upload_location / ilastik_output_file_path.name
+        ilastik_output_file_path, 
+        upload_location / ilastik_output_file_path.name,
     )
     shutil.copyfile(
-        cellprofiler_output_file_path.parent,
+        cellprofiler_output_file_path,
         upload_location / cellprofiler_output_file_path.name,
     )
 
     image.cleanup()
 
-    # Low Priority Upload submitted to slurm (upload(x,y,z))
+    fms_IDs = upload(
+    raw_image_path =  raw_image_path,
+    probabilities_image_path = upload_location / ilastik_output_file_path.name,
+    outlines_image_path = upload_location / cellprofiler_output_file_path.name,
+
+    )
+
+    add_FMS_IDs_to_SQL_table(fms_IDs,index)
 
     print("Complete")
 
@@ -85,17 +98,9 @@ def upload(
             outlines_image_path, outlines_file_type
         ).upload()
 
-    # Add to database
-    conn = psycopg2.connect(
-        database="pg_microscopy",
-        user="rw",
-        password="",
-        host="pg-aics-microscopy-01.corp.alleninstitute.org",
-        port="5432",
-    )
-
-    conn.cursor()
-    # clean up images
+    os.remove(probabilities_image_path)
+    os.remove(outlines_image_path)
+    return  pd.DataFrame.from_dict(Metadata)
 
 
 def job_complete_check(
@@ -184,3 +189,31 @@ def job_in_queue_check(job_ID: int):
     # array was not empty, indicating the job is in the queue.
 
     return output.stdout.decode("utf-8").count("\n") >= 2
+
+
+
+@staticmethod
+def add_FMS_IDs_to_SQL_table(df, index: str , table: str = TABLE_NAME):
+
+    conn = psycopg2.connect(
+        database="pg_microscopy",
+        user="rw",
+        password="",
+        host="pg-aics-microscopy-01.corp.alleninstitute.org",
+        port="5432",
+    )
+
+    tuples = [tuple(x) for x in df.to_numpy()]
+
+    cols = ",".join(list(df.columns))
+    query = "UPDATE %s SET (%s) WHERE Experiment ID = %s" (table, cols, index)
+    cursor = conn.cursor()
+    try:
+        extras.execute_values(cursor, query, tuples)
+        conn.commit()
+    except (Exception, psycopg2.DatabaseError) as error:
+        print("Error: %s" % error)
+        conn.rollback()
+        cursor.close()
+        return 1
+    cursor.close()

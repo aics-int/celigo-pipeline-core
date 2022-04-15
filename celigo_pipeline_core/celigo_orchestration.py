@@ -47,6 +47,7 @@ def run_all(
     job_complete_check(job_ID, ilastik_output_file_path, "ilastik")
     job_ID, cellprofiler_output_file_path = image.run_cellprofiler()
     job_complete_check(job_ID, cellprofiler_output_file_path, "cell profiler")
+
     index = image.upload_metrics()
 
     shutil.copyfile(
@@ -70,37 +71,6 @@ def run_all(
     add_FMS_IDs_to_SQL_table(fms_IDs,index)
 
     print("Complete")
-
-
-def upload(
-    raw_image_path: pathlib.Path,
-    probabilities_image_path: pathlib.Path,
-    outlines_image_path: pathlib.Path,
-):
-    raw_file_type = "Tiff Image"
-    probabilities_file_type = "Probability Map"
-    outlines_file_type = "Outline PNG"
-
-    Metadata = {}
-
-    if raw_image_path.is_file():
-        Metadata["RawCeligoFMSId"] = CeligoUploader(
-            raw_image_path, raw_file_type
-        ).upload()
-
-    if probabilities_image_path.is_file():
-        Metadata["ProbabilitiesMapFMSId"] = CeligoUploader(
-            probabilities_image_path, probabilities_file_type
-        ).upload()
-
-    if outlines_image_path.is_file():
-        Metadata["OutlinesFMSId"] = CeligoUploader(
-            outlines_image_path, outlines_file_type
-        ).upload()
-
-    os.remove(probabilities_image_path)
-    os.remove(outlines_image_path)
-    return  pd.DataFrame.from_dict(Metadata)
 
 
 def job_complete_check(
@@ -190,9 +160,36 @@ def job_in_queue_check(job_ID: int):
 
     return output.stdout.decode("utf-8").count("\n") >= 2
 
+def upload(
+    raw_image_path: pathlib.Path,
+    probabilities_image_path: pathlib.Path,
+    outlines_image_path: pathlib.Path,
+):
+    raw_file_type = "Tiff Image"
+    probabilities_file_type = "Probability Map"
+    outlines_file_type = "Outline PNG"
 
+    Metadata = {}
 
-@staticmethod
+    if raw_image_path.is_file():
+        Metadata["RawCeligoFMSId"] = CeligoUploader(
+            raw_image_path, raw_file_type
+        ).upload()
+
+    if probabilities_image_path.is_file():
+        Metadata["ProbabilitiesMapFMSId"] = CeligoUploader(
+            probabilities_image_path, probabilities_file_type
+        ).upload()
+
+    if outlines_image_path.is_file():
+        Metadata["OutlinesFMSId"] = CeligoUploader(
+            outlines_image_path, outlines_file_type
+        ).upload()
+
+    os.remove(probabilities_image_path)
+    os.remove(outlines_image_path)
+    return  pd.DataFrame.from_dict(Metadata)
+
 def add_FMS_IDs_to_SQL_table(df, index: str , table: str = TABLE_NAME):
 
     conn = psycopg2.connect(

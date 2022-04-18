@@ -248,7 +248,7 @@ class CeligoSingleImageCore:
         )
         ColonyDATA["Metadata_Plate"] = metadata["plate_barcode"]
         ColonyDATA["Metadata_Well"] = celigo_image.well
-        ColonyDATA["File Name"] = self.image_path.name
+        ColonyDATA["Experiment ID"] = self.image_path.name
         result = pd.merge(ColonyDATA, ImageDATA, how="left", on="ImageNumber")
         result = result.drop(columns=["ImageNumber"])
 

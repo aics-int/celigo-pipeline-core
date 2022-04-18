@@ -265,7 +265,7 @@ class CeligoSingleImageCore:
         )
         self.add_to_SQL_table(conn, result, table_name)
 
-        return result["Experiment ID"]
+        return self.image_path.name
         # Send to DB (1 tables)
 
     @staticmethod

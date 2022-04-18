@@ -229,7 +229,9 @@ class CeligoSingleImageCore:
             ),
         )
 
-    def upload_metrics(self, table_name: str) -> str:
+    def upload_metrics(
+        self, password: str, table_name: str = '"Celigo_96_Well_Data_Test"'
+    ) -> str:
         celigo_image = CeligoUploader(self.raw_image_path)
         metadata = celigo_image.metadata["microscopy"]
 
@@ -257,7 +259,7 @@ class CeligoSingleImageCore:
         conn = psycopg2.connect(
             database="pg_microscopy",
             user="rw",
-            password="",
+            password=password,
             host="pg-aics-microscopy-01.corp.alleninstitute.org",
             port="5432",
         )

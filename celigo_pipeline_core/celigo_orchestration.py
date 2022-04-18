@@ -19,6 +19,7 @@ TABLE_NAME = '"Celigo_96_Well_Data_Test"'
 
 def run_all(
     raw_image_path: str,
+    postgres_password: str,
 ):
     """Process Celigo Images from `raw_image_path`. Submits jobs for Image Downsampling,
     Image Ilastik Processing, and Image Celigo Processing. After job completion,
@@ -48,7 +49,7 @@ def run_all(
     job_ID, cellprofiler_output_file_path = image.run_cellprofiler()
     job_complete_check(job_ID, cellprofiler_output_file_path, "cell profiler")
 
-    index = image.upload_metrics(TABLE_NAME)
+    index = image.upload_metrics(password=postgres_password, table_name=TABLE_NAME)
 
     shutil.copyfile(
         ilastik_output_file_path,
@@ -67,7 +68,9 @@ def run_all(
         outlines_image_path=upload_location / cellprofiler_output_file_path.name,
     )
 
-    add_FMS_IDs_to_SQL_table(fms_IDs, index)
+    add_FMS_IDs_to_SQL_table(
+        password=postgres_password, df=fms_IDs, index=index, table=TABLE_NAME
+    )
 
     print("Complete")
 
@@ -191,12 +194,12 @@ def upload(
     return pd.DataFrame.from_dict(Metadata)
 
 
-def add_FMS_IDs_to_SQL_table(df, index: str, table: str = TABLE_NAME):
+def add_FMS_IDs_to_SQL_table(df, password: str, index: str, table: str = TABLE_NAME):
 
     conn = psycopg2.connect(
         database="pg_microscopy",
         user="rw",
-        password="",
+        password=password,
         host="pg-aics-microscopy-01.corp.alleninstitute.org",
         port="5432",
     )

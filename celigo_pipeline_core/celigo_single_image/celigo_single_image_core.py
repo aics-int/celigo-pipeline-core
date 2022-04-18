@@ -232,7 +232,7 @@ class CeligoSingleImageCore:
     def upload_metrics(
         self, password: str, table_name: str = '"Celigo_96_Well_Data_Test"'
     ) -> str:
-        celigo_image = CeligoUploader(self.raw_image_path)
+        celigo_image = CeligoUploader(self.raw_image_path, file_type="temp")
         metadata = celigo_image.metadata["microscopy"]
 
         # Building Metric Output from Cellprofiler outputs
@@ -248,7 +248,7 @@ class CeligoSingleImageCore:
         )
         ColonyDATA["Metadata_Plate"] = metadata["plate_barcode"]
         ColonyDATA["Metadata_Well"] = celigo_image.well
-        ColonyDATA["Experiment ID"] = "PROXY_ID"
+        ColonyDATA["File Name"] = self.image_path.name
         result = pd.merge(ColonyDATA, ImageDATA, how="left", on="ImageNumber")
         result = result.drop(columns=["ImageNumber"])
 

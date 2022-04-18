@@ -14,7 +14,7 @@ from .celigo_single_image import (
     CeligoSingleImageCore,
 )
 
-TABLE_NAME = "table_name"
+TABLE_NAME = '"Celigo_96_Well_Data_Test"'
 
 
 def run_all(
@@ -48,7 +48,7 @@ def run_all(
     job_ID, cellprofiler_output_file_path = image.run_cellprofiler()
     job_complete_check(job_ID, cellprofiler_output_file_path, "cell profiler")
 
-    index = image.upload_metrics()
+    index = image.upload_metrics(TABLE_NAME)
 
     shutil.copyfile(
         ilastik_output_file_path,

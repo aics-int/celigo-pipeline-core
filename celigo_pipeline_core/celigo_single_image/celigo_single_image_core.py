@@ -229,8 +229,7 @@ class CeligoSingleImageCore:
             ),
         )
 
-    def upload_metrics(self) -> str:
-        table_name = '"Celigo_96_Well_Data_Test"'
+    def upload_metrics(self, table_name: str) -> str:
         celigo_image = CeligoUploader(self.raw_image_path)
         metadata = celigo_image.metadata["microscopy"]
 

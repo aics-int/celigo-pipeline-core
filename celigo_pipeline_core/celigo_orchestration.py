@@ -1,21 +1,21 @@
-from importlib import metadata
+import os
 import pathlib
 from pathlib import Path
-import psycopg2
-import psycopg2.extras as extras
 import shutil
 import subprocess
 import time
-import os
-import pandas as pd
 
 from aics_pipeline_uploaders import CeligoUploader
+import pandas as pd
+import psycopg2
+import psycopg2.extras as extras
 
 from .celigo_single_image import (
     CeligoSingleImageCore,
 )
 
-TABLE_NAME = 'table_name'
+TABLE_NAME = "table_name"
+
 
 def run_all(
     raw_image_path: str,
@@ -51,7 +51,7 @@ def run_all(
     index = image.upload_metrics()
 
     shutil.copyfile(
-        ilastik_output_file_path, 
+        ilastik_output_file_path,
         upload_location / ilastik_output_file_path.name,
     )
     shutil.copyfile(
@@ -62,13 +62,12 @@ def run_all(
     image.cleanup()
 
     fms_IDs = upload(
-    raw_image_path =  raw_image_path,
-    probabilities_image_path = upload_location / ilastik_output_file_path.name,
-    outlines_image_path = upload_location / cellprofiler_output_file_path.name,
-
+        raw_image_path=Path(raw_image_path),
+        probabilities_image_path=upload_location / ilastik_output_file_path.name,
+        outlines_image_path=upload_location / cellprofiler_output_file_path.name,
     )
 
-    add_FMS_IDs_to_SQL_table(fms_IDs,index)
+    add_FMS_IDs_to_SQL_table(fms_IDs, index)
 
     print("Complete")
 
@@ -160,6 +159,7 @@ def job_in_queue_check(job_ID: int):
 
     return output.stdout.decode("utf-8").count("\n") >= 2
 
+
 def upload(
     raw_image_path: pathlib.Path,
     probabilities_image_path: pathlib.Path,
@@ -188,9 +188,10 @@ def upload(
 
     os.remove(probabilities_image_path)
     os.remove(outlines_image_path)
-    return  pd.DataFrame.from_dict(Metadata)
+    return pd.DataFrame.from_dict(Metadata)
 
-def add_FMS_IDs_to_SQL_table(df, index: str , table: str = TABLE_NAME):
+
+def add_FMS_IDs_to_SQL_table(df, index: str, table: str = TABLE_NAME):
 
     conn = psycopg2.connect(
         database="pg_microscopy",
@@ -203,7 +204,11 @@ def add_FMS_IDs_to_SQL_table(df, index: str , table: str = TABLE_NAME):
     tuples = [tuple(x) for x in df.to_numpy()]
 
     cols = ",".join(list(df.columns))
-    query = "UPDATE %s SET (%s) WHERE Experiment ID = %s" (table, cols, index)
+    query = "UPDATE %s SET (%s) WHERE Experiment ID = %s" % (
+        table,
+        cols,
+        index,
+    )  # Need someone to look at this line
     cursor = conn.cursor()
     try:
         extras.execute_values(cursor, query, tuples)

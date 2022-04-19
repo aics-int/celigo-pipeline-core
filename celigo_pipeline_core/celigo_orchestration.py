@@ -8,7 +8,6 @@ import time
 from aics_pipeline_uploaders import CeligoUploader
 import pandas as pd
 import psycopg2
-import psycopg2.extras as extras
 
 from .celigo_single_image import (
     CeligoSingleImageCore,
@@ -50,6 +49,7 @@ def run_all(
     job_complete_check(job_ID, cellprofiler_output_file_path, "cell profiler")
 
     index = image.upload_metrics(password=postgres_password, table_name=TABLE_NAME)
+    print("metrics uploaded")
 
     shutil.copyfile(
         ilastik_output_file_path,
@@ -60,13 +60,14 @@ def run_all(
         upload_location / cellprofiler_output_file_path.name,
     )
 
-    image.cleanup()
+    # image.cleanup()
 
     fms_IDs = upload(
         raw_image_path=Path(raw_image_path),
         probabilities_image_path=upload_location / ilastik_output_file_path.name,
         outlines_image_path=upload_location / cellprofiler_output_file_path.name,
     )
+    print("files uploaded")
 
     add_FMS_IDs_to_SQL_table(
         password=postgres_password, df=fms_IDs, index=index, table=TABLE_NAME
@@ -174,24 +175,21 @@ def upload(
 
     Metadata = {}
 
-    if raw_image_path.is_file():
-        Metadata["RawCeligoFMSId"] = CeligoUploader(
-            raw_image_path, raw_file_type
-        ).upload()
-
-    if probabilities_image_path.is_file():
-        Metadata["ProbabilitiesMapFMSId"] = CeligoUploader(
-            probabilities_image_path, probabilities_file_type
-        ).upload()
-
-    if outlines_image_path.is_file():
-        Metadata["OutlinesFMSId"] = CeligoUploader(
-            outlines_image_path, outlines_file_type
-        ).upload()
-
+    Metadata["RawCeligoFMSId"] = [
+        CeligoUploader(raw_image_path, raw_file_type).upload()
+    ]
+    print(Metadata)
+    Metadata["ProbabilitiesMapFMSId"] = [
+        CeligoUploader(probabilities_image_path, probabilities_file_type).upload()
+    ]
+    print(Metadata)
+    Metadata["OutlinesFMSId"] = [
+        CeligoUploader(outlines_image_path, outlines_file_type).upload()
+    ]
+    print(Metadata)
     os.remove(probabilities_image_path)
     os.remove(outlines_image_path)
-    return pd.DataFrame.from_dict(Metadata)
+    return pd.DataFrame.from_records(Metadata)
 
 
 def add_FMS_IDs_to_SQL_table(df, password: str, index: str, table: str = TABLE_NAME):

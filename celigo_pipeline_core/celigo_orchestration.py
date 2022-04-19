@@ -205,16 +205,12 @@ def add_FMS_IDs_to_SQL_table(df, password: str, index: str, table: str = TABLE_N
     )
 
     tuples = [tuple(x) for x in df.to_numpy()]
-
-    cols = ",".join(list(df.columns))
-    query = "UPDATE %s SET (%s) WHERE Experiment ID = %s" % (
-        table,
-        cols,
-        index,
-    )  # Need someone to look at this line
     cursor = conn.cursor()
     try:
-        extras.execute_values(cursor, query, tuples)
+        cursor.execute(
+            'UPDATE %s SET "RawCeligoFMSId" = %s, "ProbabilitiesMapFMSId" = %s, "OutlinesFMSId" = %s WHERE "Experiment ID" = %s',
+            (table, tuples[0], tuples[1], tuples[2], index),
+        )
         conn.commit()
     except (Exception, psycopg2.DatabaseError) as error:
         print("Error: %s" % error)

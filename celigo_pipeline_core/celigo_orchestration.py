@@ -13,7 +13,7 @@ from .celigo_single_image import (
     CeligoSingleImageCore,
 )
 
-TABLE_NAME = '"Celigo_96_Well_Data_Test"'
+TABLE_NAME = '"Celigo_96_Well_Data_Test_V_TWO"'
 
 
 def run_all(
@@ -207,7 +207,13 @@ def add_FMS_IDs_to_SQL_table(df, password: str, index: str, table: str = TABLE_N
     try:
         cursor.execute(
             'UPDATE %s SET "RawCeligoFMSId" = %s, "ProbabilitiesMapFMSId" = %s, "OutlinesFMSId" = %s WHERE "Experiment ID" = %s',
-            (table, tuples[0], tuples[1], tuples[2], index), # TODO: This should be more streamlined.
+            (
+                table,
+                tuples[0],
+                tuples[1],
+                tuples[2],
+                index,
+            ),  # TODO: This should be more streamlined.
         )
         conn.commit()
     except (Exception, psycopg2.DatabaseError) as error:

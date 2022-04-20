@@ -30,11 +30,9 @@ def run_all(
         Path must point to a .Tiff image produced by the Celigo camera. Path must be accessable
         from SLURM (ISILON[OK])
 
-    Keyword Arguments
-    -----------------
-    upload_location : Optional[pathlib.Path]
-        You have the option to specify an output directory for post processing metrics.
-        Otherwise metrics are saved to /allen/aics/microscopy/PRODUCTION/Celigo_Metric_Output
+    postgres_password : str
+        Password used to access Microscopy DB. (Contact Brian Whitney, Aditya Nath, Tyler Foster)
+
     """
 
     image = CeligoSingleImageCore(raw_image_path)
@@ -51,6 +49,7 @@ def run_all(
     index = image.upload_metrics(password=postgres_password, table_name=TABLE_NAME)
     print("metrics uploaded")
 
+    # Copy files off isilon for off cluster upload
     shutil.copyfile(
         ilastik_output_file_path,
         upload_location / ilastik_output_file_path.name,
@@ -60,8 +59,10 @@ def run_all(
         upload_location / cellprofiler_output_file_path.name,
     )
 
+    # Cleans temporary files from slurm node
     # image.cleanup()
 
+    # Upload IMG, Probababilities, Outlines to FMS
     fms_IDs = upload(
         raw_image_path=Path(raw_image_path),
         probabilities_image_path=upload_location / ilastik_output_file_path.name,
@@ -69,6 +70,7 @@ def run_all(
     )
     print("files uploaded")
 
+    # Add FMS ID's from uploaded files to postgres database
     add_FMS_IDs_to_SQL_table(
         password=postgres_password, df=fms_IDs, index=index, table=TABLE_NAME
     )
@@ -169,6 +171,33 @@ def upload(
     probabilities_image_path: pathlib.Path,
     outlines_image_path: pathlib.Path,
 ):
+
+    """Provides wrapped process for FMS upload. Throughout the Celigo pipeline there are a few files
+    We want to preserve in FMS.
+
+    1) Original Image
+
+    2) Ilastik Probabilities
+
+    3) Cellprofiler Outlines
+
+
+    Parameters
+    ----------
+    raw_image_path: pathlib.Path
+        Path to raw image (TIFF). Set internally through `run_all`. Metadata is Created from the file
+        name through `CeligoUploader`
+    probabilities_image_path: pathlib.Path
+        Path to image probability map (TIFF). Set internally through `run_all`. Metadata is Created from the file
+        name through `CeligoUploader`
+    outlines_image_path: pathlib.Path
+        Path to cellprofiler output (PNG). Set internally through `run_all`. Metadata is Created from the file
+        name through `CeligoUploader`
+
+    Returns
+    -------
+    ids: pd.Dataframe of upload IDS
+    """
     raw_file_type = "Tiff Image"
     probabilities_file_type = "Probability Map"
     outlines_file_type = "Outline PNG"
@@ -189,7 +218,8 @@ def upload(
     print(Metadata)
     os.remove(probabilities_image_path)
     os.remove(outlines_image_path)
-    return pd.DataFrame.from_records(Metadata)
+    ids = pd.DataFrame.from_records(Metadata)
+    return ids
 
 
 def add_FMS_IDs_to_SQL_table(df, password: str, index: str, table: str = TABLE_NAME):

@@ -13,7 +13,7 @@ from .celigo_single_image import (
     CeligoSingleImageCore,
 )
 
-TABLE_NAME = '"Celigo_96_Well_Data_Test_V_TWO"'
+TABLE_NAME = '"Celigo_96_Well_Data_Test_V_THREE"'
 
 
 def run_all(

@@ -203,9 +203,7 @@ def upload(
 
     metadata = {}
 
-    metadata["RawCeligoFMSId"] = CeligoUploader(
-        raw_image_path, raw_file_type
-    ).upload()
+    metadata["RawCeligoFMSId"] = CeligoUploader(raw_image_path, raw_file_type).upload()
 
     metadata["ProbabilitiesMapFMSId"] = CeligoUploader(
         probabilities_image_path, probabilities_file_type
@@ -236,8 +234,9 @@ def add_FMS_IDs_to_SQL_table(
     query = f"UPDATE {table} SET"
     for key in metadata:
         query = query + f' "{key}" = "{metadata[key]}",'
-    query = query + f' WHERE "Experiment ID" = "{index}"'
+    query = query[:-1] + f' WHERE "Experiment ID" = "{index}"'
     print(query)
+
     try:
         cursor.execute(query)
         conn.commit()
@@ -246,4 +245,5 @@ def add_FMS_IDs_to_SQL_table(
         conn.rollback()
         cursor.close()
         return 1
+
     cursor.close()

@@ -203,18 +203,18 @@ def upload(
 
     metadata = {}
 
-    metadata["RawCeligoFMSId"] = [
-        CeligoUploader(raw_image_path, raw_file_type).upload()
-    ]
-    print(metadata)
-    metadata["ProbabilitiesMapFMSId"] = [
-        CeligoUploader(probabilities_image_path, probabilities_file_type).upload()
-    ]
-    print(metadata)
-    metadata["OutlinesFMSId"] = [
-        CeligoUploader(outlines_image_path, outlines_file_type).upload()
-    ]
-    print(metadata)
+    metadata["RawCeligoFMSId"] = CeligoUploader(
+        raw_image_path, raw_file_type
+    ).upload()
+
+    metadata["ProbabilitiesMapFMSId"] = CeligoUploader(
+        probabilities_image_path, probabilities_file_type
+    ).upload()
+
+    metadata["OutlinesFMSId"] = CeligoUploader(
+        outlines_image_path, outlines_file_type
+    ).upload()
+
     os.remove(probabilities_image_path)
     os.remove(outlines_image_path)
     return metadata

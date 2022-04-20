@@ -6,7 +6,6 @@ import subprocess
 import time
 
 from aics_pipeline_uploaders import CeligoUploader
-import pandas as pd
 import psycopg2
 
 from .celigo_single_image import (
@@ -72,7 +71,7 @@ def run_all(
 
     # Add FMS ID's from uploaded files to postgres database
     add_FMS_IDs_to_SQL_table(
-        password=postgres_password, df=fms_IDs, index=index, table=TABLE_NAME
+        password=postgres_password, metadata=fms_IDs, index=index, table=TABLE_NAME
     )
 
     print("Complete")
@@ -196,33 +195,34 @@ def upload(
 
     Returns
     -------
-    ids: pd.Dataframe of upload IDS
+    metadata: dictionary of upload IDS
     """
     raw_file_type = "Tiff Image"
     probabilities_file_type = "Probability Map"
     outlines_file_type = "Outline PNG"
 
-    Metadata = {}
+    metadata = {}
 
-    Metadata["RawCeligoFMSId"] = [
+    metadata["RawCeligoFMSId"] = [
         CeligoUploader(raw_image_path, raw_file_type).upload()
     ]
-    print(Metadata)
-    Metadata["ProbabilitiesMapFMSId"] = [
+    print(metadata)
+    metadata["ProbabilitiesMapFMSId"] = [
         CeligoUploader(probabilities_image_path, probabilities_file_type).upload()
     ]
-    print(Metadata)
-    Metadata["OutlinesFMSId"] = [
+    print(metadata)
+    metadata["OutlinesFMSId"] = [
         CeligoUploader(outlines_image_path, outlines_file_type).upload()
     ]
-    print(Metadata)
+    print(metadata)
     os.remove(probabilities_image_path)
     os.remove(outlines_image_path)
-    ids = pd.DataFrame.from_records(Metadata)
-    return ids
+    return metadata
 
 
-def add_FMS_IDs_to_SQL_table(df, password: str, index: str, table: str = TABLE_NAME):
+def add_FMS_IDs_to_SQL_table(
+    metadata: dict, password: str, index: str, table: str = TABLE_NAME
+):
 
     conn = psycopg2.connect(
         database="pg_microscopy",
@@ -232,9 +232,11 @@ def add_FMS_IDs_to_SQL_table(df, password: str, index: str, table: str = TABLE_N
         port="5432",
     )
 
-    tuples = [tuple(x) for x in df.to_numpy()]
     cursor = conn.cursor()
-    query = 'UPDATE %s SET "RawCeligoFMSId" = %s, "ProbabilitiesMapFMSId" = %s, "OutlinesFMSId" = %s WHERE "Experiment ID" = %s', (table,tuples[0],tuples[1],tuples[2],index,),
+    query = f"UPDATE {table} SET"
+    for key in metadata:
+        query = query + f' "{key}" = {metadata[key]},'
+    query = query + f' WHERE "Experiment ID" = {index}'
     print(query)
     try:
         cursor.execute(query)

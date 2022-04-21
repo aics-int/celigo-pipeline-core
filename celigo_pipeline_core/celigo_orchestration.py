@@ -49,7 +49,6 @@ def run_all(
     index = image.upload_metrics(
         postgres_password=postgres_password, table_name=TABLE_NAME
     )
-    print("metrics uploaded")
 
     # Copy files off isilon for off cluster upload
     shutil.copyfile(
@@ -70,7 +69,6 @@ def run_all(
         probabilities_image_path=upload_location / ilastik_output_file_path.name,
         outlines_image_path=upload_location / cellprofiler_output_file_path.name,
     )
-    print("files uploaded")
 
     # Add FMS ID's from uploaded files to postgres database
     add_FMS_IDs_to_SQL_table(
@@ -193,7 +191,6 @@ def upload(
 
     3) Cellprofiler Outlines
 
-
     Parameters
     ----------
     raw_image_path: pathlib.Path
@@ -243,7 +240,6 @@ def add_FMS_IDs_to_SQL_table(
 
     3) Cellprofiler Outlines
 
-
     Parameters
     ----------
     metadata: dict
@@ -257,7 +253,7 @@ def add_FMS_IDs_to_SQL_table(
         Name of table in Postgres Database intended for import. Default is chosen by DEVS given current DB status
     """
 
-    # Establish connection to database
+    # Connect to DB
     conn = psycopg2.connect(
         database="pg_microscopy",
         user="rw",
@@ -267,11 +263,9 @@ def add_FMS_IDs_to_SQL_table(
     )
     cursor = conn.cursor()
 
-    # Build Query
-
+    # Submit Queries
     for key in metadata:
         query = f'UPDATE {table} SET "{key}" = %s WHERE "Experiment ID" = %s;'
-        print(query)
         try:
             cursor.execute(query, (metadata[key], index))
             conn.commit()

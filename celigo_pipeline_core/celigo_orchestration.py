@@ -270,10 +270,10 @@ def add_FMS_IDs_to_SQL_table(
     # Build Query
 
     for key in metadata:
-        query = f'UPDATE {table} SET "{key}" = "{metadata[key]}" WHERE "Experiment ID" = %s;'
+        query = f'UPDATE {table} SET "{key}" = %s WHERE "Experiment ID" = %s;'
         print(query)
         try:
-            cursor.execute(query,(index,))
+            cursor.execute(query,(metadata[key],index))
             conn.commit()
         except (Exception, psycopg2.DatabaseError) as error:
             print("Error: %s" % error)

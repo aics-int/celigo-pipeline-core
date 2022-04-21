@@ -154,6 +154,13 @@ def job_complete_check(
 # Function that checks if a current job ID is in the squeue. Returns True if it is and False if it isnt.
 def job_in_queue_check(job_ID: int):
 
+    """Checks if a given `job_ID` is in SLURM queue.
+
+    Parameters
+    ----------
+    job_ID: int
+        The given job ID from a bash submission to SLURM.
+    """
     output = subprocess.run(
         ["squeue", "-j", f"{job_ID}"], check=True, capture_output=True
     )
@@ -219,24 +226,49 @@ def upload(
 
 
 def add_FMS_IDs_to_SQL_table(
-    metadata: dict, password: str, index: str, table: str = TABLE_NAME
+    metadata: dict, postgres_password: str, index: str, table: str = TABLE_NAME
 ):
+    """Provides wrapped process for Insertion of FMS IDS into Postgres Database. Throughout the Celigo pipeline there are a few files
+    We want to preserve in FMS, after upload these files FMS ID's are recorded in the Microscopy DB.
 
+    1) Original Image
+
+    2) Ilastik Probabilities
+
+    3) Cellprofiler Outlines
+
+
+    Parameters
+    ----------
+    metadata: dict
+        List of metadata in form [KEY] : [VALUE] to be inserted into database.
+    postgres_password : str
+        Password used to access Microscopy DB. (Contact Brian Whitney, Aditya Nath, Tyler Foster)
+    index : str
+        index defines the rows that the FMS ID's will be inserted into. In most cases this will be the Experiment ID,
+        which is just the original filename.
+    table: str = TABLE_NAME
+        Name of table in Postgres Database intended for import. Default is chosen by DEVS given current DB status
+    """
+
+    # Establish connection to database
     conn = psycopg2.connect(
         database="pg_microscopy",
         user="rw",
-        password=password,
+        password=postgres_password,
         host="pg-aics-microscopy-01.corp.alleninstitute.org",
         port="5432",
     )
-
     cursor = conn.cursor()
+
+    # Build Query
     query = f"UPDATE {table} SET"
     for key in metadata:
         query = query + f' "{key}" = "{metadata[key]}",'
-    query = query[:-1] + f' WHERE "Experiment ID" = "{index}"'
+    query = query[:-1] + f' WHERE "Experiment ID" = "{index}";'
     print(query)
 
+    # Apply Query to DB
     try:
         cursor.execute(query)
         conn.commit()

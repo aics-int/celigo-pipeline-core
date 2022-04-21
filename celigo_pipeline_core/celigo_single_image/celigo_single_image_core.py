@@ -49,14 +49,6 @@ class CeligoSingleImageCore:
         )
         self.image_path = Path(f"{self.working_dir}/{self.raw_image_path.name}")
 
-        # Future resources:
-        # self.filelist_path = Path()
-        # self.resize_filelist_path = Path()
-        # self.cell_profiler_output_path = Path()
-        # self.downsample_job_ID = int()
-        # self.ilastik_job_ID = int()
-        # self.cellprofiler_job_ID = int()
-
         # Creating pipeline paths for templates
         with pkg_resources.path(pipelines, "rescale_pipeline.cppipe") as p:
             self.rescale_pipeline_path = p

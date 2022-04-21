@@ -32,6 +32,14 @@ class Args(argparse.Namespace):
         )
 
         p.add_argument(
+            "--postgres_password",
+            dest="postgres_password",
+            type=str,
+            help="password for accessing postgres password for metric upload.",
+            required=True,
+        )
+
+        p.add_argument(
             "--debug",
             help="Enable debug mode",
             default=False,

@@ -61,7 +61,7 @@ def run_all(
     )
 
     # Cleans temporary files from slurm node
-    # image.cleanup()
+    image.cleanup()
 
     # Upload IMG, Probababilities, Outlines to FMS
     fms_IDs = upload(

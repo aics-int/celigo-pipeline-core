@@ -76,13 +76,14 @@ class CeligoSingleImageCore:
         )
 
     def downsample(self):
-        """Align channels within `image` using similarity transform generated from the optical control image passed to
-        this instance at construction. Scenes within `image` will be saved to their own image files once aligned.
+        """downsample raw images for higher processing speed and streamlining of
+        later steps
 
         Returns
         -------
         tuple[int,pathlib.Path]
-            A list of namedtuples, each of which describes a scene within `image` that was aligned.
+            A list of namedtuples, The first of which being the SLURM job ID and the second
+            being the desired output Path.
         """
 
         # Generates filelist for resize pipeline
@@ -128,13 +129,14 @@ class CeligoSingleImageCore:
         return job_ID, self.image_path
 
     def run_ilastik(self):
-        """Align channels within `image` using similarity transform generated from the optical control image passed to
-        this instance at construction. Scenes within `image` will be saved to their own image files once aligned.
+        """Applies the Ilastik Pipeline processing to the downsampled image to
+        produce a Probability map of the prior image.
 
         Returns
         -------
         tuple[int,pathlib.Path]
-            A list of namedtuples, each of which describes a scene within `image` that was aligned.
+            A list of namedtuples, The first of which being the SLURM job ID and the second
+            being the desired output Path.
         """
 
         # Parameters to input to bash script template
@@ -172,14 +174,14 @@ class CeligoSingleImageCore:
         return job_ID, Path(f"{self.image_path.with_suffix('')}_probabilities.tiff")
 
     def run_cellprofiler(self):
-        """Align channels within `image` using similarity transform generated from the optical control image passed to
-        this instance at construction. Scenes within `image` will be saved to their own image files once aligned.
+        """Applies the Cell Profiler Pipeline processing to the downsampled image using the Ilastik
+        probabilities to produce a outlined cell profile and a series of metrics
 
         Returns
         -------
         tuple[int,pathlib.Path]
-            A list of namedtuples, The first of which contains the resultant SLURM job ID call and
-            the seconnd containing a Path in the working directory pointing to the output file
+            A list of namedtuples, The first of which being the SLURM job ID and the second
+            being the desired output Path.
         """
 
         # Parameters to input to bash script template.
@@ -224,6 +226,25 @@ class CeligoSingleImageCore:
     def upload_metrics(
         self, postgres_password: str, table_name: str = '"Celigo_96_Well_Data_Test"'
     ) -> str:
+        """Uploads the metrics from the cell profiler pipeline run and comnbines them with
+        the Images Metadata. Then Uploads metrics to postgres database.
+
+        Parameters
+        ----------
+        postgres_password: str
+            To access the postgres database a password is needed.
+
+        table_name: str = '"Celigo_96_Well_Data_Test"'
+            There are many tables in the Microscopy DB. This parameter specifies which table
+            to insert metrics into.
+
+        Returns
+        -------
+        self.raw_image_path.name
+            returns the original files name. This return is used to index 'table_name' in the
+            future in order to insert additional metrics.
+        """
+
         celigo_image = CeligoUploader(self.raw_image_path, file_type="temp")
         metadata = celigo_image.metadata["microscopy"]
 
@@ -260,13 +281,27 @@ class CeligoSingleImageCore:
         return self.raw_image_path.name
 
     @staticmethod
-    def add_to_SQL_table(conn, df, table):
+    def add_to_SQL_table(conn, metadata: pd.DataFrame, postgres_table: str):
+        """A companion function for upload_metrics. This function provides the utility to insert
+        metrics.
 
-        tuples = [tuple(x) for x in df.to_numpy()]
+        Parameters
+        ----------
+        conn
+            A psycopg2 database connection.
+        metadata : pd.DataFrame
+            The intended data to be inserted. This table is usually formatted
+            by the upload_metrics funciton.
+        postgres_table : str
+            The specific table you wish to insert metrics into. The table name
+            needs to be within quotes inside the string in order to be processed
+            correctly by the database.
+        """
+        tuples = [tuple(x) for x in metadata.to_numpy()]
 
-        cols = ",".join(list(df.columns))
+        cols = ",".join(list(metadata.columns))
         # SQL query to execute
-        query = "INSERT INTO %s(%s) VALUES %%s" % (table, cols)
+        query = "INSERT INTO %s(%s) VALUES %%s" % (postgres_table, cols)
         cursor = conn.cursor()
         try:
             extras.execute_values(cursor, query, tuples)
@@ -279,4 +314,7 @@ class CeligoSingleImageCore:
         cursor.close()
 
     def cleanup(self):
+        """Removes created working directory from SLURM so
+        that the work space does not become overencumbered.
+        """
         shutil.rmtree(self.working_dir)

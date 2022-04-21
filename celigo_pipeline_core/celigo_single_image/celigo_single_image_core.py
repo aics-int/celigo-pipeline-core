@@ -26,8 +26,8 @@ class CeligoSingleImageCore:
         Parameters
         ----------
         raw_image_path : str
-            Optical control image that will be used to generate an alignment matrix.
-            Passed as-is to aicsimageio.AICSImage constructor.
+            Raw celigo image path. This path is used to copy a version of the image to SLURM for
+            processing.
         """
 
         # Directory Name, used to create working directory.
@@ -222,7 +222,7 @@ class CeligoSingleImageCore:
         )
 
     def upload_metrics(
-        self, password: str, table_name: str = '"Celigo_96_Well_Data_Test"'
+        self, postgres_password: str, table_name: str = '"Celigo_96_Well_Data_Test"'
     ) -> str:
         celigo_image = CeligoUploader(self.raw_image_path, file_type="temp")
         metadata = celigo_image.metadata["microscopy"]
@@ -240,7 +240,7 @@ class CeligoSingleImageCore:
         )
         ColonyDATA["Metadata_Plate"] = metadata["plate_barcode"]
         ColonyDATA["Metadata_Well"] = celigo_image.well
-        ColonyDATA["Experiment ID"] = self.image_path.name
+        ColonyDATA["Experiment ID"] = self.raw_image_path.name
         result = pd.merge(ColonyDATA, ImageDATA, how="left", on="ImageNumber")
         result = result.drop(columns=["ImageNumber"])
 
@@ -251,14 +251,13 @@ class CeligoSingleImageCore:
         conn = psycopg2.connect(
             database="pg_microscopy",
             user="rw",
-            password=password,
+            password=postgres_password,
             host="pg-aics-microscopy-01.corp.alleninstitute.org",
             port="5432",
         )
         self.add_to_SQL_table(conn, result, table_name)
 
-        return self.image_path.name
-        # Send to DB (1 tables)
+        return self.raw_image_path.name
 
     @staticmethod
     def add_to_SQL_table(conn, df, table):

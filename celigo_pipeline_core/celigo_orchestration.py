@@ -36,7 +36,8 @@ def run_all(
 
     image = CeligoSingleImageCore(raw_image_path)
 
-    upload_location = Path(raw_image_path).parent
+    raw_image = Path(raw_image_path)
+    upload_location = raw_image.parent
 
     job_ID, downsample_output_file_path = image.downsample()
     job_complete_check(job_ID, downsample_output_file_path, "downsample")
@@ -45,7 +46,9 @@ def run_all(
     job_ID, cellprofiler_output_file_path = image.run_cellprofiler()
     job_complete_check(job_ID, cellprofiler_output_file_path, "cell profiler")
 
-    index = image.upload_metrics(password=postgres_password, table_name=TABLE_NAME)
+    index = image.upload_metrics(
+        postgres_password=postgres_password, table_name=TABLE_NAME
+    )
     print("metrics uploaded")
 
     # Copy files off isilon for off cluster upload
@@ -71,7 +74,10 @@ def run_all(
 
     # Add FMS ID's from uploaded files to postgres database
     add_FMS_IDs_to_SQL_table(
-        postgres_password=postgres_password, metadata=fms_IDs, index=index, table=TABLE_NAME
+        postgres_password=postgres_password,
+        metadata=fms_IDs,
+        index=index,
+        table=TABLE_NAME,
     )
 
     print("Complete")

@@ -12,7 +12,7 @@ from .celigo_single_image import (
     CeligoSingleImageCore,
 )
 
-TABLE_NAME = '"Celigo_96_Well_Data_Test_V_THREE"'
+TABLE_NAME = '"Celigo_96_Well_Data_Test_V_FOUR"'
 
 
 def run_all(
@@ -273,7 +273,7 @@ def add_FMS_IDs_to_SQL_table(
         query = f'UPDATE {table} SET "{key}" = %s WHERE "Experiment ID" = %s;'
         print(query)
         try:
-            cursor.execute(query,(metadata[key],index))
+            cursor.execute(query, (metadata[key], index))
             conn.commit()
         except (Exception, psycopg2.DatabaseError) as error:
             print("Error: %s" % error)

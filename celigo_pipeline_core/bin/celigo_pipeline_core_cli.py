@@ -15,6 +15,7 @@ class Args(argparse.Namespace):
         super().__init__()
         self.debug = False
         self.image_path = str()
+        self.postgres_password = str()
         self.__parse()
 
     def __parse(self):
@@ -28,6 +29,14 @@ class Args(argparse.Namespace):
             dest="image_path",
             type=str,
             help="Image file location on local computer (Image for Processing)",
+            required=True,
+        )
+
+        p.add_argument(
+            "--postgres_password",
+            dest="postgres_password",
+            type=str,
+            help="password for accessing postgres password for metric upload.",
             required=True,
         )
 
@@ -58,7 +67,9 @@ def main():
     debug = args.debug
 
     try:
-        run_all(args.image_path)
+        run_all(
+            raw_image_path=args.image_path, postgres_password=args.postgres_password
+        )
 
     except Exception as e:
         log.error("=============================================")

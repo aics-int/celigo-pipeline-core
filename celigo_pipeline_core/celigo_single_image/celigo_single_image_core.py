@@ -1,13 +1,15 @@
 import importlib.resources as pkg_resources
 import os
-import pathlib
 from pathlib import Path
 import pwd
 import shutil
 import subprocess
 
+from aics_pipeline_uploaders import CeligoUploader
 from jinja2 import Environment, PackageLoader
 import pandas as pd
+import psycopg2
+import psycopg2.extras as extras
 
 from .. import pipelines
 
@@ -24,8 +26,8 @@ class CeligoSingleImageCore:
         Parameters
         ----------
         raw_image_path : str
-            Optical control image that will be used to generate an alignment matrix.
-            Passed as-is to aicsimageio.AICSImage constructor.
+            Raw celigo image path. This path is used to copy a version of the image to SLURM for
+            processing.
         """
 
         # Directory Name, used to create working directory.
@@ -46,14 +48,6 @@ class CeligoSingleImageCore:
             self.raw_image_path, f"{self.working_dir}/{self.raw_image_path.name}"
         )
         self.image_path = Path(f"{self.working_dir}/{self.raw_image_path.name}")
-
-        # Future resources:
-        # self.filelist_path = Path()
-        # self.resize_filelist_path = Path()
-        # self.cell_profiler_output_path = Path()
-        # self.downsample_job_ID = int()
-        # self.ilastik_job_ID = int()
-        # self.cellprofiler_job_ID = int()
 
         # Creating pipeline paths for templates
         with pkg_resources.path(pipelines, "rescale_pipeline.cppipe") as p:
@@ -81,14 +75,15 @@ class CeligoSingleImageCore:
             self.working_dir / "96_well_colony_pipeline_v_0.1.cppipe"
         )
 
-    def downsample(self) -> tuple[int, pathlib.Path]:
-        """Align channels within `image` using similarity transform generated from the optical control image passed to
-        this instance at construction. Scenes within `image` will be saved to their own image files once aligned.
+    def downsample(self):
+        """downsample raw images for higher processing speed and streamlining of
+        later steps
 
         Returns
         -------
         tuple[int,pathlib.Path]
-            A list of namedtuples, each of which describes a scene within `image` that was aligned.
+            A list of namedtuples, The first of which being the SLURM job ID and the second
+            being the desired output Path.
         """
 
         # Generates filelist for resize pipeline
@@ -133,14 +128,15 @@ class CeligoSingleImageCore:
         job_ID = int(output.stdout.decode("utf-8").split(" ")[-1][:-1])
         return job_ID, self.image_path
 
-    def run_ilastik(self) -> tuple[int, pathlib.Path]:
-        """Align channels within `image` using similarity transform generated from the optical control image passed to
-        this instance at construction. Scenes within `image` will be saved to their own image files once aligned.
+    def run_ilastik(self):
+        """Applies the Ilastik Pipeline processing to the downsampled image to
+        produce a Probability map of the prior image.
 
         Returns
         -------
         tuple[int,pathlib.Path]
-            A list of namedtuples, each of which describes a scene within `image` that was aligned.
+            A list of namedtuples, The first of which being the SLURM job ID and the second
+            being the desired output Path.
         """
 
         # Parameters to input to bash script template
@@ -177,15 +173,15 @@ class CeligoSingleImageCore:
         job_ID = int(output.stdout.decode("utf-8").split(" ")[-1][:-1])
         return job_ID, Path(f"{self.image_path.with_suffix('')}_probabilities.tiff")
 
-    def run_cellprofiler(self) -> tuple[int, pathlib.Path]:
-        """Align channels within `image` using similarity transform generated from the optical control image passed to
-        this instance at construction. Scenes within `image` will be saved to their own image files once aligned.
+    def run_cellprofiler(self):
+        """Applies the Cell Profiler Pipeline processing to the downsampled image using the Ilastik
+        probabilities to produce a outlined cell profile and a series of metrics
 
         Returns
         -------
         tuple[int,pathlib.Path]
-            A list of namedtuples, The first of which contains the resultant SLURM job ID call and
-            the seconnd containing a Path in the working directory pointing to the output file
+            A list of namedtuples, The first of which being the SLURM job ID and the second
+            being the desired output Path.
         """
 
         # Parameters to input to bash script template.
@@ -227,21 +223,98 @@ class CeligoSingleImageCore:
             ),
         )
 
-    def upload_metrics(self):
-        # combine output metrics and send to database
+    def upload_metrics(
+        self, postgres_password: str, table_name: str = '"Celigo_96_Well_Data_Test"'
+    ) -> str:
+        """Uploads the metrics from the cell profiler pipeline run and comnbines them with
+        the Images Metadata. Then Uploads metrics to postgres database.
 
-        BallCraterDATA = pd.read_csv(
-            self.cell_profiler_output_path / "BallCraterDATA.csv"
-        )
+        Parameters
+        ----------
+        postgres_password: str
+            To access the postgres database a password is needed.
+
+        table_name: str = '"Celigo_96_Well_Data_Test"'
+            There are many tables in the Microscopy DB. This parameter specifies which table
+            to insert metrics into.
+
+        Returns
+        -------
+        self.raw_image_path.name
+            returns the original files name. This return is used to index 'table_name' in the
+            future in order to insert additional metrics.
+        """
+
+        celigo_image = CeligoUploader(self.raw_image_path, file_type="temp")
+        metadata = celigo_image.metadata["microscopy"]
+
+        # Building Metric Output from Cellprofiler outputs
         ColonyDATA = pd.read_csv(self.cell_profiler_output_path / "ColonyDATA.csv")
         ImageDATA = pd.read_csv(self.cell_profiler_output_path / "ImageDATA.csv")
-        ExperimentDATA = pd.read_csv(
-            self.cell_profiler_output_path / "ExperimentDATA.csv"
+
+        # formatting
+        ColonyDATA = ColonyDATA[
+            ColonyDATA.columns.drop(list(ColonyDATA.filter(regex="Metadata")))
+        ]
+        ColonyDATA["Metadata_DateString"] = (
+            metadata["celigo"]["scan_date"] + " " + metadata["celigo"]["scan_time"]
         )
+        ColonyDATA["Metadata_Plate"] = metadata["plate_barcode"]
+        ColonyDATA["Metadata_Well"] = celigo_image.well
+        ColonyDATA["Experiment ID"] = self.raw_image_path.name
+        result = pd.merge(ColonyDATA, ImageDATA, how="left", on="ImageNumber")
+        result = result.drop(columns=["ImageNumber"])
 
-        # combine metrics
+        # Database formatting, Columns that have capitols have to have quotes around them
+        result = result.add_suffix('"')
+        result = result.add_prefix('"')
 
-        # Send to DB
+        conn = psycopg2.connect(
+            database="pg_microscopy",
+            user="rw",
+            password=postgres_password,
+            host="pg-aics-microscopy-01.corp.alleninstitute.org",
+            port="5432",
+        )
+        self.add_to_SQL_table(conn, result, table_name)
+
+        return self.raw_image_path.name
+
+    @staticmethod
+    def add_to_SQL_table(conn, metadata: pd.DataFrame, postgres_table: str):
+        """A companion function for upload_metrics. This function provides the utility to insert
+        metrics.
+
+        Parameters
+        ----------
+        conn
+            A psycopg2 database connection.
+        metadata : pd.DataFrame
+            The intended data to be inserted. This table is usually formatted
+            by the upload_metrics funciton.
+        postgres_table : str
+            The specific table you wish to insert metrics into. The table name
+            needs to be within quotes inside the string in order to be processed
+            correctly by the database.
+        """
+        tuples = [tuple(x) for x in metadata.to_numpy()]
+
+        cols = ",".join(list(metadata.columns))
+        # SQL query to execute
+        query = "INSERT INTO %s(%s) VALUES %%s" % (postgres_table, cols)
+        cursor = conn.cursor()
+        try:
+            extras.execute_values(cursor, query, tuples)
+            conn.commit()
+        except (Exception, psycopg2.DatabaseError) as error:
+            print("Error: %s" % error)
+            conn.rollback()
+            cursor.close()
+            return 1
+        cursor.close()
 
     def cleanup(self):
+        """Removes created working directory from SLURM so
+        that the work space does not become overencumbered.
+        """
         shutil.rmtree(self.working_dir)

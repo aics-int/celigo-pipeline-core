@@ -1,17 +1,23 @@
 import os
 import pathlib
+from pathlib import Path
 import shutil
 import subprocess
 import time
+
+from aics_pipeline_uploaders import CeligoUploader
+import psycopg2
 
 from .celigo_single_image import (
     CeligoSingleImageCore,
 )
 
+TABLE_NAME = '"Celigo_96_Well_Data_Test_V_FOUR"'
+
 
 def run_all(
-    raw_image_path: pathlib.Path,
-    upload_location: pathlib.Path = "/allen/aics/microscopy/PRODUCTION/Celigo_Metric_Output",
+    raw_image_path: str,
+    postgres_password: str,
 ):
     """Process Celigo Images from `raw_image_path`. Submits jobs for Image Downsampling,
     Image Ilastik Processing, and Image Celigo Processing. After job completion,
@@ -20,31 +26,58 @@ def run_all(
     Parameters
     ----------
     raw_image_path : pathlib.Path
-        Path must poinntn a .Tiff image produced by the Celigo camera. Path must be accessable
+        Path must point to a .Tiff image produced by the Celigo camera. Path must be accessable
         from SLURM (ISILON[OK])
 
-    Keyword Arguments
-    -----------------
-    upload_location : Optional[pathlib.Path]
-        You have the option to specify an output directory for post processing metrics.
-        Otherwise metrics are saved to /allen/aics/microscopy/PRODUCTION/Celigo_Metric_Output
+    postgres_password : str
+        Password used to access Microscopy DB. (Contact Brian Whitney, Aditya Nath, Tyler Foster)
+
     """
 
     image = CeligoSingleImageCore(raw_image_path)
 
-    job_ID, output_file = image.downsample()
-    job_complete_check(job_ID, output_file, "downsample")
-    job_ID, output_file = image.run_ilastik()
-    job_complete_check(job_ID, output_file, "ilastik")
-    job_ID, output_file = image.run_cellprofiler()
-    job_complete_check(job_ID, output_file, "cell profiler")
+    raw_image = Path(raw_image_path)
+    upload_location = raw_image.parent
 
-    # Temporary until upload location is specified.
-    shutil.copytree(
-        output_file.parent, upload_location / output_file.with_suffix("").name
+    job_ID, downsample_output_file_path = image.downsample()
+    job_complete_check(job_ID, downsample_output_file_path, "downsample")
+    job_ID, ilastik_output_file_path = image.run_ilastik()
+    job_complete_check(job_ID, ilastik_output_file_path, "ilastik")
+    job_ID, cellprofiler_output_file_path = image.run_cellprofiler()
+    job_complete_check(job_ID, cellprofiler_output_file_path, "cell profiler")
+
+    index = image.upload_metrics(
+        postgres_password=postgres_password, table_name=TABLE_NAME
     )
-    # Upload raw image with low priority
+
+    # Copy files off isilon for off cluster upload
+    shutil.copyfile(
+        ilastik_output_file_path,
+        upload_location / ilastik_output_file_path.name,
+    )
+    shutil.copyfile(
+        cellprofiler_output_file_path,
+        upload_location / cellprofiler_output_file_path.name,
+    )
+
+    # Cleans temporary files from slurm node
     image.cleanup()
+
+    # Upload IMG, Probababilities, Outlines to FMS
+    fms_IDs = upload(
+        raw_image_path=Path(raw_image_path),
+        probabilities_image_path=upload_location / ilastik_output_file_path.name,
+        outlines_image_path=upload_location / cellprofiler_output_file_path.name,
+    )
+
+    # Add FMS ID's from uploaded files to postgres database
+    add_FMS_IDs_to_SQL_table(
+        postgres_password=postgres_password,
+        metadata=fms_IDs,
+        index=index,
+        table=TABLE_NAME,
+    )
+
     print("Complete")
 
 
@@ -61,7 +94,7 @@ def job_complete_check(
         Job has been sucessfully submitted to SLURM and is currently in the queue. This is not
         an indicator of sucess, only that the given job was submitted
     3) Status : failed
-        Job has failed, the specified `endfile ` was not created within the specified time
+        Job has failed, the specified `endfile` was not created within the specified time
         criteria. Most likely after this time it will never complete.
     4) Status : complete
         Job has completed! and it is ok to use the endfile locationn for further processing
@@ -125,6 +158,13 @@ def job_complete_check(
 # Function that checks if a current job ID is in the squeue. Returns True if it is and False if it isnt.
 def job_in_queue_check(job_ID: int):
 
+    """Checks if a given `job_ID` is in SLURM queue.
+
+    Parameters
+    ----------
+    job_ID: int
+        The given job ID from a bash submission to SLURM.
+    """
     output = subprocess.run(
         ["squeue", "-j", f"{job_ID}"], check=True, capture_output=True
     )
@@ -134,3 +174,105 @@ def job_in_queue_check(job_ID: int):
     # array was not empty, indicating the job is in the queue.
 
     return output.stdout.decode("utf-8").count("\n") >= 2
+
+
+def upload(
+    raw_image_path: pathlib.Path,
+    probabilities_image_path: pathlib.Path,
+    outlines_image_path: pathlib.Path,
+):
+
+    """Provides wrapped process for FMS upload. Throughout the Celigo pipeline there are a few files
+    We want to preserve in FMS.
+
+    1) Original Image
+
+    2) Ilastik Probabilities
+
+    3) Cellprofiler Outlines
+
+    Parameters
+    ----------
+    raw_image_path: pathlib.Path
+        Path to raw image (TIFF). Set internally through `run_all`. Metadata is Created from the file
+        name through `CeligoUploader`
+    probabilities_image_path: pathlib.Path
+        Path to image probability map (TIFF). Set internally through `run_all`. Metadata is Created from the file
+        name through `CeligoUploader`
+    outlines_image_path: pathlib.Path
+        Path to cellprofiler output (PNG). Set internally through `run_all`. Metadata is Created from the file
+        name through `CeligoUploader`
+
+    Returns
+    -------
+    metadata: dictionary of upload IDS
+    """
+    raw_file_type = "Tiff Image"
+    probabilities_file_type = "Probability Map"
+    outlines_file_type = "Outline PNG"
+
+    metadata = {}
+
+    metadata["RawCeligoFMSId"] = CeligoUploader(raw_image_path, raw_file_type).upload()
+
+    metadata["ProbabilitiesMapFMSId"] = CeligoUploader(
+        probabilities_image_path, probabilities_file_type
+    ).upload()
+
+    metadata["OutlinesFMSId"] = CeligoUploader(
+        outlines_image_path, outlines_file_type
+    ).upload()
+
+    os.remove(probabilities_image_path)
+    os.remove(outlines_image_path)
+    return metadata
+
+
+def add_FMS_IDs_to_SQL_table(
+    metadata: dict, postgres_password: str, index: str, table: str = TABLE_NAME
+):
+    """Provides wrapped process for Insertion of FMS IDS into Postgres Database. Throughout the Celigo pipeline there are a few files
+    We want to preserve in FMS, after upload these files FMS ID's are recorded in the Microscopy DB.
+
+    1) Original Image
+
+    2) Ilastik Probabilities
+
+    3) Cellprofiler Outlines
+
+    Parameters
+    ----------
+    metadata: dict
+        List of metadata in form [KEY] : [VALUE] to be inserted into database.
+    postgres_password : str
+        Password used to access Microscopy DB. (Contact Brian Whitney, Aditya Nath, Tyler Foster)
+    index : str
+        index defines the rows that the FMS ID's will be inserted into. In most cases this will be the Experiment ID,
+        which is just the original filename.
+    table: str = TABLE_NAME
+        Name of table in Postgres Database intended for import. Default is chosen by DEVS given current DB status
+    """
+
+    # Connect to DB
+    conn = psycopg2.connect(
+        database="pg_microscopy",
+        user="rw",
+        password=postgres_password,
+        host="pg-aics-microscopy-01.corp.alleninstitute.org",
+        port="5432",
+    )
+    cursor = conn.cursor()
+
+    # Submit Queries
+    for key in metadata:
+        query = f'UPDATE {table} SET "{key}" = %s WHERE "Experiment ID" = %s;'
+        try:
+            cursor.execute(query, (metadata[key], index))
+            conn.commit()
+        except (Exception, psycopg2.DatabaseError) as error:
+            print("Error: %s" % error)
+            conn.rollback()
+            cursor.close()
+            return 1
+
+    cursor.close()

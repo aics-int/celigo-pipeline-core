@@ -71,7 +71,7 @@ def run_all(
 
     # Add FMS ID's from uploaded files to postgres database
     add_FMS_IDs_to_SQL_table(
-        password=postgres_password, metadata=fms_IDs, index=index, table=TABLE_NAME
+        postgres_password=postgres_password, metadata=fms_IDs, index=index, table=TABLE_NAME
     )
 
     print("Complete")

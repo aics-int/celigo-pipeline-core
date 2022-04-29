@@ -40,11 +40,11 @@ def run_all(
     upload_location = raw_image.parent
 
     job_ID, downsample_output_file_path = image.downsample()
-    job_complete_check(job_ID, downsample_output_file_path, "downsample")
+    job_complete_check(job_ID, [downsample_output_file_path], "downsample")
     job_ID, ilastik_output_file_path = image.run_ilastik()
-    job_complete_check(job_ID, ilastik_output_file_path, "ilastik")
-    job_ID, cellprofiler_output_file_path = image.run_cellprofiler()
-    job_complete_check(job_ID, cellprofiler_output_file_path, "cell profiler")
+    job_complete_check(job_ID, [ilastik_output_file_path], "ilastik")
+    job_ID, cellprofiler_output_file_paths = image.run_cellprofiler()
+    job_complete_check(job_ID, cellprofiler_output_file_paths, "cell profiler")
 
     index = image.upload_metrics(
         postgres_password=postgres_password, table_name=TABLE_NAME
@@ -56,8 +56,8 @@ def run_all(
         upload_location / ilastik_output_file_path.name,
     )
     shutil.copyfile(
-        cellprofiler_output_file_path,
-        upload_location / cellprofiler_output_file_path.name,
+        cellprofiler_output_file_paths[0],
+        upload_location / cellprofiler_output_file_paths[0].name,
     )
 
     # Cleans temporary files from slurm node
@@ -67,7 +67,7 @@ def run_all(
     fms_IDs = upload(
         raw_image_path=Path(raw_image_path),
         probabilities_image_path=upload_location / ilastik_output_file_path.name,
-        outlines_image_path=upload_location / cellprofiler_output_file_path.name,
+        outlines_image_path=upload_location / cellprofiler_output_file_paths[0].name,
     )
 
     # Add FMS ID's from uploaded files to postgres database
@@ -83,7 +83,7 @@ def run_all(
 
 def job_complete_check(
     job_ID: int,
-    endfile: pathlib.Path,
+    filelist: "list[pathlib.Path]",
     name: str = "",
 ):
     """Provides a tool to check job status of SLURM Job ID. Job Status is Dictated by the following
@@ -119,7 +119,9 @@ def job_complete_check(
     count = 0  # Runtime Counter
 
     # Main Logic Loop: waiting for file to exist or maximum wait-time reached.
-    while (not endfile.exists()) and job_status != "complete":
+    while (not all([os.path.isfile(f) for f in filelist])) and (
+        job_status != "complete"
+    ):
 
         # Wait between checks
         time.sleep(3)
@@ -138,7 +140,7 @@ def job_complete_check(
             # the job is no longer in the queue. Then the next logic statements come
             # into play to determine if the run was sucessful
 
-        elif not endfile.exists() and count > 200:
+        elif not all([os.path.isfile(f) for f in filelist]) and count > 200:
             # This logic is only reached if the process ran and is no longer in the queue
             # Counts to 600 to wait and see if the output file gets created. If it doesnt then
             # prints that the job has failed and breaks out of the loop.
@@ -148,7 +150,7 @@ def job_complete_check(
             break
 
         # The final statement confirming if the process was sucessful.
-        elif endfile.exists():
+        elif all([os.path.isfile(f) for f in filelist]):
             job_status = "complete"
             print(f"Job: {job_ID} {name} is complete!")
 

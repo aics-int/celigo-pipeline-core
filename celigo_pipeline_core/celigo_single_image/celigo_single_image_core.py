@@ -218,9 +218,15 @@ class CeligoSingleImageCore:
 
         return (
             job_ID,
-            Path(
-                f"{script_config['output_dir']}/{self.image_path.with_suffix('').name}_outlines.png"
-            ),
+            [
+                Path(
+                    f"{script_config['output_dir']}/{self.image_path.with_suffix('').name}_outlines.png"
+                ),
+                Path(f"{script_config['output_dir']}/ColonyDATA.csv"),
+                Path(f"{script_config['output_dir']}/ImageDATA.csv"),
+                Path(f"{script_config['output_dir']}/BallCraterClassifiedDATA.csv"),
+                Path(f"{script_config['output_dir']}/EdgeClassifiedDATA.csv"),
+            ],
         )
 
     def upload_metrics(

@@ -1,0 +1,31 @@
+name: Documentation
+
+on:
+  push:
+    branches:
+      - main
+
+jobs:
+  docs:
+    runs-on: ubuntu-latest
+    steps:
+    - uses: actions/checkout@ec3a7ce113134d7a93b817d10a8272cb61118579  # v2.4.0
+      with:
+        persist-credentials: false
+    - name: Set up Python
+      uses: actions/setup-python@f38219332975fe8f9c04cca981d674bf22aea1d3  # v2.3.1
+      with:
+        python-version: 3.9
+    - name: Install dependencies
+      run: |
+        make install
+    - name: Generate docs
+      run: |
+        make docs
+        touch docs/build/.nojekyll
+    - name: Publish docs
+      uses: JamesIves/github-pages-deploy-action@b36f842fa378d7cbf6695fcac86ecdcef3af8af3  # v4.2.3
+      with:
+        branch: gh-pages # The branch the action should deploy to.
+        folder: docs/build/ # The folder the action should deploy.
+

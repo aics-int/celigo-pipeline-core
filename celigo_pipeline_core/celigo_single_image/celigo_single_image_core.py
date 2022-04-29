@@ -284,11 +284,7 @@ class CeligoSingleImageCore:
         )
         self.add_to_SQL_table(conn, result, table_name)
 
-        return (
-            [self.raw_image_path.name]
-            .append(self.cell_profiler_output_path / "ColonyDATA.csv")
-            .append(self.cell_profiler_output_path / "ImageDATA.csv")
-        )
+        return self.raw_image_path.name
 
     @staticmethod
     def add_to_SQL_table(conn, metadata: pd.DataFrame, postgres_table: str):

@@ -43,8 +43,8 @@ def run_all(
     job_complete_check(job_ID, [downsample_output_file_path], "downsample")
     job_ID, ilastik_output_file_path = image.run_ilastik()
     job_complete_check(job_ID, [ilastik_output_file_path], "ilastik")
-    job_ID, cellprofiler_output_file_path = image.run_cellprofiler()
-    job_complete_check(job_ID, cellprofiler_output_file_path, "cell profiler")
+    job_ID, cellprofiler_output_file_paths = image.run_cellprofiler()
+    job_complete_check(job_ID, cellprofiler_output_file_paths, "cell profiler")
 
     index = image.upload_metrics(
         postgres_password=postgres_password, table_name=TABLE_NAME
@@ -56,8 +56,8 @@ def run_all(
         upload_location / ilastik_output_file_path.name,
     )
     shutil.copyfile(
-        cellprofiler_output_file_path,
-        upload_location / cellprofiler_output_file_path.name,
+        cellprofiler_output_file_paths[0],
+        upload_location / cellprofiler_output_file_paths[0].name,
     )
 
     # Cleans temporary files from slurm node
@@ -67,7 +67,7 @@ def run_all(
     fms_IDs = upload(
         raw_image_path=Path(raw_image_path),
         probabilities_image_path=upload_location / ilastik_output_file_path.name,
-        outlines_image_path=upload_location / cellprofiler_output_file_path.name,
+        outlines_image_path=upload_location / cellprofiler_output_file_paths[0].name,
     )
 
     # Add FMS ID's from uploaded files to postgres database

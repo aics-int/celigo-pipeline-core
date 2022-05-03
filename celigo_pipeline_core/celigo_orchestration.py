@@ -8,17 +8,17 @@ import time
 
 from aics_pipeline_uploaders import CeligoUploader
 from dotenv import find_dotenv, load_dotenv
-from notifcations import (
-    send_slack_notification_on_failure,
-)
-from postgres_db_functions import (
-    add_FMS_IDs_to_SQL_table,
-    add_to_table,
-)
 import psycopg2
 
 from .celigo_single_image import (
     CeligoSingleImageCore,
+)
+from .notifcations import (
+    send_slack_notification_on_failure,
+)
+from .postgres_db_functions import (
+    add_FMS_IDs_to_SQL_table,
+    add_to_table,
 )
 
 TABLE_NAME = '"Celigo_96_Well_Data_Test_V_FOUR"'
@@ -102,7 +102,7 @@ def run_all(
 
     except Exception as e:
         error, status = e, "Failed"
-        send_slack_notification_on_failure(file_name=raw_image.name, error=error)
+        send_slack_notification_on_failure(file_name=raw_image.name, error=str(error))
         image.cleanup()
         print(error)
 
@@ -123,7 +123,7 @@ def run_all(
             submission["Error Code"] = error
 
         add_to_table(
-            metadata=submission, conn=conn, table=os.getenv("CELIGO_STATUS_DB")
+            metadata=submission, conn=conn, table=str(os.getenv("CELIGO_STATUS_DB"))
         )
 
 

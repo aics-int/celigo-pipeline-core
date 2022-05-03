@@ -83,3 +83,8 @@ def add_to_table(conn, metadata: pd.DataFrame, table: str):
         cursor.close()
         return 1
     cursor.close()
+
+
+"""
+def get_report_data():
+"""

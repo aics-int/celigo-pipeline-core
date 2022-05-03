@@ -18,7 +18,6 @@ from .celigo_single_image.celigo_single_image_core import (
     CeligoSingleImageCore,
 )
 from .notifcations import (
-    day_report,
     send_slack_notification_on_failure,
 )
 from .postgres_db_functions import (

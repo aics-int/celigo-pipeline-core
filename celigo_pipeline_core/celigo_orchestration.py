@@ -1,4 +1,4 @@
-from datetime import datetime
+from datetime import date, datetime
 import os
 import pathlib
 from pathlib import Path
@@ -107,16 +107,20 @@ def run_all(
         print(error)
 
     finally:
+        now = datetime.now()
+        current_time = now.strftime("%H:%M:%S")
+
         submission = {
             "File Name": raw_image.name,
-            "Datetime": datetime.now(),
             "Status": status,
+            "Date": date.today(),
+            "Time": current_time,
         }
 
         if "Complete" in locals():
             submission["FMS ID"] = fms_IDs[0]
         if "Failed" in locals():
-            submission["Error Message"] = error
+            submission["Error Code"] = error
 
         add_to_table(
             metadata=submission, conn=conn, table=os.getenv("CELIGO_STATUS_DB")

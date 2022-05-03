@@ -120,7 +120,7 @@ def run_all(
         }
 
         if status == "Complete":
-            submission["FMS ID"] = [fms_IDs[0]]
+            submission["FMS ID"] = [fms_IDs["RawCeligoFMSId"]]
         if status == "Failed":
             submission["Error Code"] = [str(error)]
 
@@ -231,7 +231,7 @@ def upload(
     raw_image_path: pathlib.Path,
     probabilities_image_path: pathlib.Path,
     outlines_image_path: pathlib.Path,
-):
+) -> dict:
 
     """Provides wrapped process for FMS upload. Throughout the Celigo pipeline there are a few files
     We want to preserve in FMS.

@@ -8,6 +8,7 @@ import time
 
 from aics_pipeline_uploaders import CeligoUploader
 from dotenv import find_dotenv, load_dotenv
+import pandas as pd
 import psycopg2
 
 from .celigo_single_image import (
@@ -111,19 +112,20 @@ def run_all(
         current_time = now.strftime("%H:%M:%S")
 
         submission = {
-            "File Name": raw_image.name,
-            "Status": status,
-            "Date": date.today(),
-            "Time": current_time,
+            "File Name": [raw_image.name],
+            "Status": [status],
+            "Date": [date.today()],
+            "Time": [current_time],
         }
 
         if "Complete" in locals():
-            submission["FMS ID"] = fms_IDs[0]
+            submission["FMS ID"] = [fms_IDs[0]]
         if "Failed" in locals():
-            submission["Error Code"] = error
+            submission["Error Code"] = [str(error)]
 
+        row_data = pd.DataFrame.from_dict(submission)
         add_to_table(
-            metadata=submission, conn=conn, table=str(os.getenv("CELIGO_STATUS_DB"))
+            metadata=row_data, conn=conn, table=str(os.getenv("CELIGO_STATUS_DB"))
         )
 
 

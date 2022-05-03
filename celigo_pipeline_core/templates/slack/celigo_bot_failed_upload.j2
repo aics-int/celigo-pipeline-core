@@ -1,0 +1,32 @@
+[     
+        {
+                "type": "section",
+                "text": {
+                "type": "mrkdwn",
+                "text": "Celigo Pipeline {{ date }} `FAILED` to complete."
+        }
+        },
+        {
+                "type": "divider",
+                "block_id": "divider1"
+        },
+        {
+                "type": "section",
+                "text": {
+                "type": "mrkdwn",
+                "text": "```File Not Uploaded: {{ filename }}```"
+                }
+
+        },
+        {
+                "type": "divider",
+                "block_id": "divider2"
+        },
+        {
+                "type": "section",
+                "text": {
+                "type": "mrkdwn",
+                "text": "```Error: {{ error }}```"
+                }
+        }
+]

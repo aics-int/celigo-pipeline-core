@@ -51,5 +51,7 @@ html_theme = "furo"
 
 
 # -- Extensions ----------------------------------------------------------------
-napoleon_numpy_docstring = True  # https://numpydoc.readthedocs.io/en/latest/format.html#docstring-standard
+napoleon_numpy_docstring = (
+    True  # https://numpydoc.readthedocs.io/en/latest/format.html#docstring-standard
+)
 napoleon_google_docstring = False

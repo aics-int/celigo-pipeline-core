@@ -50,6 +50,7 @@ def run_all(
     image = CeligoSingleImageCore(raw_image_path)
     raw_image = Path(raw_image_path)
     upload_location = raw_image.parent
+    status = "Running"
 
     load_dotenv(find_dotenv())
 
@@ -118,9 +119,9 @@ def run_all(
             "Time": [current_time],
         }
 
-        if "Complete" in locals():
+        if status == "Complete":
             submission["FMS ID"] = [fms_IDs[0]]
-        if "Failed" in locals():
+        if status == "Failed":
             submission["Error Code"] = [str(error)]
 
         row_data = pd.DataFrame.from_dict(submission)

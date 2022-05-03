@@ -1,3 +1,4 @@
+import datetime
 import os
 
 from dotenv import find_dotenv, load_dotenv
@@ -86,6 +87,13 @@ def add_to_table(conn, metadata: pd.DataFrame, table: str):
     cursor.close()
 
 
-"""
-def get_report_data():
-"""
+def get_report_data(conn, date: datetime.date):
+    cursor = conn.cursor()
+    postgreSQL_select_Query = "select * from %s where Date = %s" % (
+        os.getenv("CELIGO_STATUS_DB"),
+        date,
+    )
+
+    cursor.execute(postgreSQL_select_Query)
+    records = cursor.fetchall()
+    print(records)

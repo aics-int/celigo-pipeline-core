@@ -115,7 +115,7 @@ def run_all(
         submission = {
             "File Name": [raw_image.name],
             "Status": [status],
-            "Date": [date.today()],
+            "Date": [str(date.today())],
             "Time": [current_time],
         }
 

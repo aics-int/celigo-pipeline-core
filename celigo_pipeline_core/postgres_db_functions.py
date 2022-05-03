@@ -36,7 +36,6 @@ def add_FMS_IDs_to_SQL_table(
     # Connect to DB
     load_dotenv(find_dotenv())
     cursor = conn.cursor()
-
     # Submit Queries
     for key in metadata:
         query = f'UPDATE {os.getenv("CELIGO_METRICS_DB")} SET "{key}" = %s WHERE "Experiment ID" = %s;'
@@ -68,6 +67,8 @@ def add_to_table(conn, metadata: pd.DataFrame, table: str):
         needs to be within quotes inside the string in order to be processed
         correctly by the database.
     """
+    metadata = metadata.add_suffix('"')
+    metadata = metadata.add_prefix('"')
     tuples = [tuple(x) for x in metadata.to_numpy()]
 
     cols = ",".join(list(metadata.columns))

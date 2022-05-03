@@ -267,10 +267,6 @@ class CeligoSingleImageCore:
         result = pd.merge(ColonyDATA, ImageDATA, how="left", on="ImageNumber")
         result = result.drop(columns=["ImageNumber"])
 
-        # Database formatting, Columns that have capitols have to have quotes around them
-        result = result.add_suffix('"')
-        result = result.add_prefix('"')
-
         add_to_table(conn, result, table)
 
         return self.raw_image_path.name

@@ -23,16 +23,26 @@ def send_slack_notification_on_failure(file_name: str, error: str):
         )
     )
 
-    message = jinja_env.get_template("celigo_bot_failed_upload.j2").render(
-        script_config
-    )
+    message = jinja_env.get_template("celigo_failed_upload.j2").render(script_config)
 
     blocks = json.loads(message)
     client = slack.WebClient(token=os.getenv("CELIGO_SLACK_TOKEN"))
     client.chat_postMessage(channel="#celigo-pipeline", blocks=blocks)
 
 
-def report():
-    # report todays Celigo Uploads
-    x = 0
-    print(x)
+def day_report():
+    load_dotenv(find_dotenv())
+
+    script_config = {}
+
+    jinja_env = Environment(
+        loader=PackageLoader(
+            package_name="celigo_pipeline_core", package_path="templates/slack"
+        )
+    )
+
+    message = jinja_env.get_template("celigo_day_report.j2").render(script_config)
+
+    blocks = json.loads(message)
+    client = slack.WebClient(token=os.getenv("CELIGO_SLACK_TOKEN"))
+    client.chat_postMessage(channel="#celigo-pipeline", blocks=blocks)

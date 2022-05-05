@@ -1,4 +1,4 @@
-import datetime
+from datetime import date
 import os
 
 from dotenv import find_dotenv, load_dotenv
@@ -87,13 +87,26 @@ def add_to_table(conn, metadata: pd.DataFrame, table: str):
     cursor.close()
 
 
-def get_report_data(conn, date: datetime.date):
-    cursor = conn.cursor()
-    postgreSQL_select_Query = "select * from %s where Date = %s" % (
-        os.getenv("CELIGO_STATUS_DB"),
-        date,
+def get_report_data(date: date):
+    load_dotenv(find_dotenv())
+    conn = psycopg2.connect(
+        database=os.getenv("MICROSCOPY_DB"),
+        user=os.getenv("MICROSCOPY_DB_USER"),
+        password=os.getenv("MICROSCOPY_DB_PASSWORD"),
+        host=os.getenv("MICROSCOPY_DB_HOST"),
+        port=os.getenv("MICROSCOPY_DB_PORT"),
     )
-
-    cursor.execute(postgreSQL_select_Query)
+    cursor = conn.cursor()
+    query = f'select * from {os.getenv("CELIGO_STATUS_DB")} where "Date" = %s'
+    cursor.execute(query, (str(date),))
     records = cursor.fetchall()
-    print(records)
+    data = []
+    for row in records:
+        info = {
+            "Name": row[1],
+            "Status": row[2],
+            "ID": row[5],
+            "Error": row[6],
+        }
+        data.append(info)
+    return data

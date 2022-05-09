@@ -4,7 +4,6 @@ import os
 
 from dotenv import find_dotenv, load_dotenv
 from jinja2 import Environment, PackageLoader
-import pandas as pd
 import slack
 
 from .postgres_db_functions import get_report_data
@@ -38,16 +37,14 @@ def send_slack_notification_on_failure(file_name: str, error: str):
 def slack_day_report():
 
     load_dotenv(find_dotenv())
-    data = get_report_data(date.today())
-    daily_run_data = pd.DataFrame(data)
-    daily_run_data.to_csv("celigo_daily_log.csv", index=False)
-    runs = [run["Status"] for run in data]
+    filename, df = get_report_data(date.today())
+    data = df.to_csv(filename, index=False)
 
     script_config = {
         "date": date.today(),
-        "count": len(runs),
-        "total_success": runs.count("Complete"),
-        "total_fails": runs.count("Failed"),
+        "count": data["Status"].count(),
+        "total_success": data.value_counts()["Complete"],
+        "total_fails": data.value_counts()["Failed"],
     }
 
     jinja_env = Environment(
@@ -62,11 +59,11 @@ def slack_day_report():
     client.chat_postMessage(channel="#celigo-pipeline", blocks=blocks)
     client.files_upload(
         channels="#celigo-pipeline",
-        filename="celigo_daily_log.csv",
-        file=open("celigo_daily_log.csv", "rb"),
+        filename=filename,
+        file=open(filename, "rb"),
     )
 
-    os.remove("celigo_daily_log.csv")
+    os.remove(filename)
 
 
 def get_channel_emails(channel_id: str) -> list:
@@ -80,13 +77,21 @@ def get_channel_emails(channel_id: str) -> list:
     return emails
 
 
-def email_daily_report():
+def email_daily_report_to_channel():
     emails = get_channel_emails(os.getenv("CELIGO_CHANNEL_ID"))
-    data = get_report_data(date.today())
-    daily_run_data = pd.DataFrame(data)
-    daily_run_data.to_csv("celigo_daily_log.csv", index=False)
-    runs = [run["Status"] for run in data]
-    print(emails, runs)
-    # Email body
+    filename, df = get_report_data(date.today())
+    data = df.to_csv(filename, index=False)
+    for email in emails:
+        email_daily_report(
+            receiver=email,
+            report=filename,
+            total=data["Status"].count(),
+            success=data.value_counts()["Complete"],
+            failed=data.value_counts()["Failed"],
+        )
+    os.remove(filename)
 
-    os.remove("celigo_daily_log.csv")
+
+def email_daily_report(receiver, report: str, total: int, success: int, failed: int):
+    x = 0
+    return x

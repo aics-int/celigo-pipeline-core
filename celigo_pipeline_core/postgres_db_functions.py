@@ -109,4 +109,8 @@ def get_report_data(date: date):
             "Error": row[6],
         }
         data.append(info)
-    return data
+
+    daily_run_data = pd.DataFrame(data)
+    filename = f"celigo_daily_log {date.today()}.csv"
+
+    return filename, daily_run_data

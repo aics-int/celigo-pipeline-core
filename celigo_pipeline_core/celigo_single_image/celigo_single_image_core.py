@@ -265,11 +265,11 @@ class CeligoSingleImageCore:
         ColonyDATA["Metadata_DateString"] = (
             metadata["celigo"]["scan_date"] + " " + metadata["celigo"]["scan_time"]
         )
-        ColonyDATA["Metadata_Plate"] = metadata["plate_barcode"]
+        ColonyDATA["barcode"] = metadata["plate_barcode"]
         ColonyDATA["Metadata_Well"] = celigo_image.well
         ColonyDATA["Experiment ID"] = self.raw_image_path.name
-        ColonyDATA["Metadata_WellRow_integer"] = int(celigo_image.row) - 1
-        ColonyDATA["Metadata_WellColumn_integer"] = int(celigo_image.col) - 1
+        ColonyDATA["row"] = int(celigo_image.row) - 1
+        ColonyDATA["col"] = int(celigo_image.col) - 1
         result = pd.merge(ColonyDATA, ImageDATA, how="left", on="ImageNumber")
         result = result.drop(columns=["ImageNumber"])
 

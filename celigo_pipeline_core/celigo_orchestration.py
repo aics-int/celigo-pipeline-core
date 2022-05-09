@@ -12,7 +12,7 @@ from .celigo_single_image import (
     CeligoSingleImageCore,
 )
 
-TABLE_NAME = '"Celigo_96_Well_Data_Test_V_SIX"'
+TABLE_NAME = '"Celigo_96_Well_Data_Test_V_SEVEN"'
 
 
 def run_all(
@@ -268,6 +268,7 @@ def add_FMS_IDs_to_SQL_table(
     # Submit Queries
     for key in metadata:
         query = f'UPDATE {table} SET "{key}" = %s WHERE "Experiment ID" = %s;'
+        print(query)
         try:
             cursor.execute(query, (metadata[key], index))
             conn.commit()

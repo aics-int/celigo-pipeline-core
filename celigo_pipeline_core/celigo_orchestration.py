@@ -268,7 +268,6 @@ def add_FMS_IDs_to_SQL_table(
     # Submit Queries
     for key in metadata:
         query = f'UPDATE {table} SET "{key}" = %s WHERE "Experiment ID" = %s;'
-        print(query)
         try:
             cursor.execute(query, (metadata[key], index))
             conn.commit()

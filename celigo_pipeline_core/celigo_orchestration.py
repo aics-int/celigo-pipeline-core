@@ -55,6 +55,21 @@ def run_all(
 
     load_dotenv(find_dotenv())
 
+    env_vars = [
+        os.getenv("MICROSCOPY_DB"),
+        os.getenv("MICROSCOPY_DB_USER"),
+        os.getenv("MICROSCOPY_DB_PASSWORD"),
+        os.getenv("MICROSCOPY_DB_HOST"),
+        os.getenv("MICROSCOPY_DB_PORT"),
+        os.getenv("CELIGO_SLACK_TOKEN"),
+        os.getenv("CELIGO_METRICS_DB"),
+        os.getenv("CELIGO_STATUS_DB"),
+        os.getenv("CELIGO_CHANNEL_NAME"),
+    ]
+
+    if any(env_vars) == 'None':
+        raise EnvironmentError("Environment variables were not loaded correctly. Try adding 'load_dotenv(find_dotenv())' to your script")
+
     conn = psycopg2.connect(
         database=os.getenv("MICROSCOPY_DB"),
         user=os.getenv("MICROSCOPY_DB_USER"),
@@ -276,6 +291,6 @@ def upload(
         outlines_image_path, outlines_file_type
     ).upload()
 
-    os.remove(probabilities_image_path)
+    os.remove(probabilities_image_path) # this should be in a try
     os.remove(outlines_image_path)
     return metadata

@@ -76,7 +76,7 @@ def get_channel_emails(channel_id: str) -> list:
             emails.append(info["user"]["profile"]["email"])
     return emails
 
-
+'''
 def email_daily_report_to_channel():
     emails = get_channel_emails(os.getenv("CELIGO_CHANNEL_ID"))
     filename, df = get_report_data(date.today())
@@ -90,8 +90,4 @@ def email_daily_report_to_channel():
             failed=data.value_counts()["Failed"],
         )
     os.remove(filename)
-
-
-def email_daily_report(receiver, report: str, total: int, success: int, failed: int):
-    x = 0
-    return x
+'''

@@ -119,31 +119,33 @@ def run_all(
         status = "Complete"
 
     except Exception as e:
+        print("is broke")
         error, status = e, "Failed"
         send_slack_notification_on_failure(file_name=raw_image.name, error=str(error))
-        image.cleanup()
+        image.cleanup() # This needs an if exists 
         print(error)
 
-    finally:
-        now = datetime.now()
-        current_time = now.strftime("%H:%M:%S")
+    now = datetime.now()
+    current_time = now.strftime("%H:%M:%S")
 
-        submission = {
-            "File Name": [raw_image.name],
-            "Status": [status],
-            "Date": [str(date.today())],
-            "Time": [current_time],
-        }
+    submission = {
+        "File Name": [raw_image.name],
+        "Status": [status],
+        "Date": [str(date.today())],
+        "Time": [current_time],
+    }
 
-        if status == "Complete":
-            submission["FMS ID"] = [fms_IDs["RawCeligoFMSId"]]
-        if status == "Failed":
-            submission["Error Code"] = [str(error)]
+    if status == "Complete":
+        submission["FMS ID"] = [fms_IDs["RawCeligoFMSId"]]
+    if status == "Failed":
+        submission["Error Code"] = [str(error)]
 
-        row_data = pd.DataFrame.from_dict(submission)
-        add_to_table(
-            metadata=row_data, conn=conn, table=str(os.getenv("CELIGO_STATUS_DB"))
-        )
+    row_data = pd.DataFrame.from_dict(submission)
+    add_to_table(
+        metadata=row_data, conn=conn, table=str(os.getenv("CELIGO_STATUS_DB"))
+    )
+
+    print(status)
 
 
 def job_complete_check(

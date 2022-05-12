@@ -68,15 +68,16 @@ def slack_day_report():
 
 def get_channel_emails(channel_id: str) -> list:
     client = slack.WebClient(token=os.getenv("CELIGO_SLACK_TOKEN"))
-    result = client.conversations_members(channel=channel_id)
+    result = dict(client.conversations_members(channel=channel_id))
     emails = []
     for user in result["members"]:
-        info = client.users_info(user=user).data
+        info = dict(client.users_info(user=user))["data"]
         if "email" in info["user"]["profile"].keys():
             emails.append(info["user"]["profile"]["email"])
     return emails
 
-'''
+
+"""
 def email_daily_report_to_channel():
     emails = get_channel_emails(os.getenv("CELIGO_CHANNEL_ID"))
     filename, df = get_report_data(date.today())
@@ -90,4 +91,4 @@ def email_daily_report_to_channel():
             failed=data.value_counts()["Failed"],
         )
     os.remove(filename)
-'''
+"""

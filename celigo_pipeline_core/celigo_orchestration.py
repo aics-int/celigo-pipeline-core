@@ -5,6 +5,7 @@ from pathlib import Path
 import shutil
 import subprocess
 import time
+from typing import List
 
 from aics_pipeline_uploaders import CeligoUploader
 from dotenv import find_dotenv, load_dotenv
@@ -132,7 +133,7 @@ def run_all(
 
 def job_complete_check(
     job_ID: int,
-    filelist: "list[pathlib.Path]",
+    filelist: List[pathlib.Path],
     name: str = "",
 ):
     """Provides a tool to check job status of SLURM Job ID. Job Status is Dictated by the following

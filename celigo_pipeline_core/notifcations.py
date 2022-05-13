@@ -34,14 +34,14 @@ def send_slack_notification_on_failure(file_name: str, error: str):
     client.chat_postMessage(channel="#celigo-pipeline", blocks=blocks)
 
 
-def slack_day_report():
+def slack_day_report(day: date = date.today()):
 
     load_dotenv(find_dotenv())
-    filename, df = get_report_data(date.today())
+    filename, df = get_report_data(day)
     _ = df.to_csv(filename, index=False)
 
     script_config = {
-        "date": date.today(),
+        "date": day,
         "count": df["Status"].count(),
         "total_success": df[df["Status"] == "Complete"]["Status"].count(),
         "total_fails": df[df["Status"] == "Failed"]["Status"].count(),
@@ -54,7 +54,6 @@ def slack_day_report():
     )
 
     message = jinja_env.get_template("celigo_day_report.j2").render(script_config)
-    print(message)
     blocks = json.loads(message)
     client = slack.WebClient(token=os.getenv("CELIGO_SLACK_TOKEN"))
     client.chat_postMessage(channel="#celigo-pipeline", blocks=blocks)

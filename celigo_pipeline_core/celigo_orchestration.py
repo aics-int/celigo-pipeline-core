@@ -86,7 +86,9 @@ def run_all(
         job_ID, ilastik_output_file_path = image.run_ilastik()
         job_complete_check(job_ID, [ilastik_output_file_path], "ilastik")
         job_ID, cellprofiler_output_file_paths = image.run_cellprofiler()
-        job_complete_check(job_ID, cellprofiler_output_file_paths, "cell profiler")
+        job_complete_check(
+            job_ID, cellprofiler_output_file_paths, "cell profiler"
+        )  # add to status loop return Status
 
         index = image.upload_metrics(conn, str(os.getenv("CELIGO_METRICS_DB")))
 
@@ -121,7 +123,7 @@ def run_all(
             index=index,
         )
 
-        status = "Complete"
+        status = "Complete"  # this wont be needed if we check after each task
 
     except Exception as e:
         print("is broke")

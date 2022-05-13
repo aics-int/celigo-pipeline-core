@@ -43,8 +43,8 @@ def slack_day_report():
     script_config = {
         "date": date.today(),
         "count": df["Status"].count(),
-        "total_success": df[df["Status"] == "Complete"].count(),
-        "total_fails": df[df["Status"] == "Failed"].count(),
+        "total_success": df[df["Status"] == "Complete"]["Status"].count(),
+        "total_fails": df[df["Status"] == "Failed"]["Status"].count(),
     }
 
     jinja_env = Environment(

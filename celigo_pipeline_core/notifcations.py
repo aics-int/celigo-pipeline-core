@@ -38,13 +38,13 @@ def slack_day_report():
 
     load_dotenv(find_dotenv())
     filename, df = get_report_data(date.today())
-    data = df.to_csv(filename, index=False)
+    _ = df.to_csv(filename, index=False)
 
     script_config = {
         "date": date.today(),
-        "count": data["Status"].count(),
-        "total_success": data.value_counts()["Complete"],
-        "total_fails": data.value_counts()["Failed"],
+        "count": df["Status"].count(),
+        "total_success": df.value_counts()["Complete"],
+        "total_fails": df.value_counts()["Failed"],
     }
 
     jinja_env = Environment(

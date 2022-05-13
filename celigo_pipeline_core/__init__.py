@@ -18,9 +18,9 @@ from .celigo_single_image.celigo_single_image_core import (
     CeligoSingleImageCore,
 )
 from .notifcations import (
+    get_channel_emails,
     send_slack_notification_on_failure,
     slack_day_report,
-    get_channel_emails,
 )
 from .postgres_db_functions import (
     add_FMS_IDs_to_SQL_table,

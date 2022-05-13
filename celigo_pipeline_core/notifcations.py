@@ -54,6 +54,7 @@ def slack_day_report():
     )
 
     message = jinja_env.get_template("celigo_day_report.j2").render(script_config)
+    print(message)
     blocks = json.loads(message)
     client = slack.WebClient(token=os.getenv("CELIGO_SLACK_TOKEN"))
     client.chat_postMessage(channel="#celigo-pipeline", blocks=blocks)

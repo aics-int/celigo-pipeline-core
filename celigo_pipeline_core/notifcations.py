@@ -41,8 +41,8 @@ def slack_day_report():
     _ = df.to_csv(filename, index=False)
 
     print(df["Status"].count())
-    print(df[df["Status"] == "Complete"].count())
-    print(df[df["Status"] == "Failed"].count())
+    print(df[df["Status"] == "Complete"]["Status"].count())
+    print(df[df["Status"] == "Failed"]["Status"].count())
     script_config = {
         "date": date.today(),
         "count": df["Status"].count(),

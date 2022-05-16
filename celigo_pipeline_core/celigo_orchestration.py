@@ -100,10 +100,9 @@ def run_all(
         )
 
         # Cleans temporary files from slurm node
-        # image.cleanup()
+        image.cleanup()
 
         # Upload IMG, Probababilities, Outlines to FMS
-        print("uploading")
         fms_IDs = upload(
             raw_image_path=Path(raw_image_path),
             probabilities_image_path=upload_location / ilastik_output_file_path.name,
@@ -111,8 +110,6 @@ def run_all(
             / cellprofiler_output_file_paths[0].name,
         )
 
-        print(fms_IDs)
-        print(index)
         # Add FMS ID's from uploaded files to postgres database
         add_FMS_IDs_to_SQL_table(
             metadata=fms_IDs,
@@ -126,7 +123,7 @@ def run_all(
         print("is broke")
         error, status = e, "Failed"
         send_slack_notification_on_failure(file_name=raw_image.name, error=str(error))
-        # image.cleanup()  # This needs an if exists
+        image.cleanup()  # This needs an if exists
         print(error)
 
     now = datetime.now()

@@ -54,7 +54,7 @@ class CeligoSingleImageCore:
         with pkg_resources.path(pipelines, "colony_morphology.model") as p:
             self.classification_model_path = p
         with pkg_resources.path(pipelines, "96_well_colony_pipeline") as p:
-            self.classification_model_path = p
+            self.cellprofiler_pipeline_path = p
 
     def downsample(self):
         """downsample raw images for higher processing speed and streamlining of

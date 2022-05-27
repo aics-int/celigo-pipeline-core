@@ -8,10 +8,9 @@ import subprocess
 from aics_pipeline_uploaders import CeligoUploader
 from jinja2 import Environment, PackageLoader
 import pandas as pd
-import psycopg2
-import psycopg2.extras as extras
 
 from .. import pipelines
+from ..postgres_db_functions import add_to_table
 
 
 class CeligoSingleImageCore:
@@ -229,9 +228,7 @@ class CeligoSingleImageCore:
             ],
         )
 
-    def upload_metrics(
-        self, postgres_password: str, table_name: str = '"Celigo_96_Well_Data_Test"'
-    ) -> str:
+    def upload_metrics(self, conn, table: str) -> str:
         """Uploads the metrics from the cell profiler pipeline run and comnbines them with
         the Images Metadata. Then Uploads metrics to postgres database.
 
@@ -250,7 +247,6 @@ class CeligoSingleImageCore:
             returns the original files name. This return is used to index 'table_name' in the
             future in order to insert additional metrics.
         """
-
         celigo_image = CeligoUploader(self.raw_image_path, file_type="temp")
         metadata = celigo_image.metadata["microscopy"]
 
@@ -273,53 +269,9 @@ class CeligoSingleImageCore:
         result = pd.merge(ColonyDATA, ImageDATA, how="left", on="ImageNumber")
         result = result.drop(columns=["ImageNumber"])
 
-        # Database formatting, Columns that have capitols have to have quotes around them
-        result = result.add_suffix('"')
-        result = result.add_prefix('"')
-
-        conn = psycopg2.connect(
-            database="pg_microscopy",
-            user="rw",
-            password=postgres_password,
-            host="pg-aics-microscopy-01.corp.alleninstitute.org",
-            port="5432",
-        )
-        self.add_to_SQL_table(conn, result, table_name)
+        add_to_table(conn, result, table)
 
         return self.raw_image_path.name
-
-    @staticmethod
-    def add_to_SQL_table(conn, metadata: pd.DataFrame, postgres_table: str):
-        """A companion function for upload_metrics. This function provides the utility to insert
-        metrics.
-
-        Parameters
-        ----------
-        conn
-            A psycopg2 database connection.
-        metadata : pd.DataFrame
-            The intended data to be inserted. This table is usually formatted
-            by the upload_metrics funciton.
-        postgres_table : str
-            The specific table you wish to insert metrics into. The table name
-            needs to be within quotes inside the string in order to be processed
-            correctly by the database.
-        """
-        tuples = [tuple(x) for x in metadata.to_numpy()]
-
-        cols = ",".join(list(metadata.columns))
-        # SQL query to execute
-        query = "INSERT INTO %s(%s) VALUES %%s" % (postgres_table, cols)
-        cursor = conn.cursor()
-        try:
-            extras.execute_values(cursor, query, tuples)
-            conn.commit()
-        except (Exception, psycopg2.DatabaseError) as error:
-            print("Error: %s" % error)
-            conn.rollback()
-            cursor.close()
-            return 1
-        cursor.close()
 
     def cleanup(self):
         """Removes created working directory from SLURM so

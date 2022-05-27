@@ -1,23 +1,30 @@
+from datetime import date, datetime
 import os
 import pathlib
 from pathlib import Path
 import shutil
 import subprocess
 import time
+from typing import List
 
 from aics_pipeline_uploaders import CeligoUploader
+from dotenv import find_dotenv, load_dotenv
+import pandas as pd
 import psycopg2
 
 from .celigo_single_image import (
     CeligoSingleImageCore,
 )
-
-TABLE_NAME = '"Celigo_96_Well_Data_Test_V_EIGHT"'
-
+from .notifcations import (
+    send_slack_notification_on_failure,
+)
+from .postgres_db_functions import (
+    add_FMS_IDs_to_SQL_table,
+    add_to_table,
+)
 
 def run_all(
     raw_image_path: str,
-    postgres_password: str,
 ):
     """Process Celigo Images from `raw_image_path`. Submits jobs for Image Downsampling,
     Image Ilastik Processing, and Image Celigo Processing. After job completion,
@@ -33,57 +40,118 @@ def run_all(
         Password used to access Microscopy DB. (Contact Brian Whitney, Aditya Nath, Tyler Foster)
 
     """
+    # Check if path is real
+    if not os.path.exists(raw_image_path):
+        raise FileNotFoundError(f"{raw_image_path} does not exist!")
 
     image = CeligoSingleImageCore(raw_image_path)
-
     raw_image = Path(raw_image_path)
     upload_location = raw_image.parent
+    status = "Running"
 
-    job_ID, downsample_output_file_path = image.downsample()
-    job_complete_check(job_ID, [downsample_output_file_path], "downsample")
-    job_ID, ilastik_output_file_path = image.run_ilastik()
-    job_complete_check(job_ID, [ilastik_output_file_path], "ilastik")
-    job_ID, cellprofiler_output_file_paths = image.run_cellprofiler()
-    job_complete_check(job_ID, cellprofiler_output_file_paths, "cell profiler")
+    load_dotenv(find_dotenv())
 
-    index = image.upload_metrics(
-        postgres_password=postgres_password, table_name=TABLE_NAME
+    env_vars = [
+        os.getenv("MICROSCOPY_DB"),
+        os.getenv("MICROSCOPY_DB_USER"),
+        os.getenv("MICROSCOPY_DB_PASSWORD"),
+        os.getenv("MICROSCOPY_DB_HOST"),
+        os.getenv("MICROSCOPY_DB_PORT"),
+        os.getenv("CELIGO_SLACK_TOKEN"),
+        os.getenv("CELIGO_METRICS_DB"),
+        os.getenv("CELIGO_STATUS_DB"),
+        os.getenv("CELIGO_CHANNEL_NAME"),
+    ]
+
+    if any(env_vars) == "None":
+        raise EnvironmentError(
+            "Environment variables were not loaded correctly. Try adding 'load_dotenv(find_dotenv())' to your script"
+        )
+
+    conn = psycopg2.connect(
+        database=os.getenv("MICROSCOPY_DB"),
+        user=os.getenv("MICROSCOPY_DB_USER"),
+        password=os.getenv("MICROSCOPY_DB_PASSWORD"),
+        host=os.getenv("MICROSCOPY_DB_HOST"),
+        port=os.getenv("MICROSCOPY_DB_PORT"),
     )
 
-    # Copy files off isilon for off cluster upload
-    shutil.copyfile(
-        ilastik_output_file_path,
-        upload_location / ilastik_output_file_path.name,
-    )
-    shutil.copyfile(
-        cellprofiler_output_file_paths[0],
-        upload_location / cellprofiler_output_file_paths[0].name,
-    )
+    try:
+        job_ID, downsample_output_file_path = image.downsample()
+        job_complete_check(job_ID, [downsample_output_file_path], "downsample")
+        job_ID, ilastik_output_file_path = image.run_ilastik()
+        job_complete_check(job_ID, [ilastik_output_file_path], "ilastik")
+        job_ID, cellprofiler_output_file_paths = image.run_cellprofiler()
+        job_complete_check(
+            job_ID, cellprofiler_output_file_paths, "cell profiler"
+        )  # add to status loop return Status
 
-    # Cleans temporary files from slurm node
-    image.cleanup()
+        index = image.upload_metrics(conn, str(os.getenv("CELIGO_METRICS_DB")))
 
-    # Upload IMG, Probababilities, Outlines to FMS
-    fms_IDs = upload(
-        raw_image_path=Path(raw_image_path),
-        probabilities_image_path=upload_location / ilastik_output_file_path.name,
-        outlines_image_path=upload_location / cellprofiler_output_file_paths[0].name,
-    )
+        # Copy files off isilon for off cluster upload
+        shutil.copyfile(
+            ilastik_output_file_path,
+            upload_location / ilastik_output_file_path.name,
+        )
+        shutil.copyfile(
+            cellprofiler_output_file_paths[0],
+            upload_location / cellprofiler_output_file_paths[0].name,
+        )
 
-    # Add FMS ID's from uploaded files to postgres database
-    add_FMS_IDs_to_SQL_table(
-        postgres_password=postgres_password,
-        metadata=fms_IDs,
-        index=index,
-        table=TABLE_NAME,
-    )
+        # Cleans temporary files from slurm node
+        image.cleanup()
 
-    print("Complete")
+        # Upload IMG, Probababilities, Outlines to FMS
+        print("uploading")
+        fms_IDs = upload(
+            raw_image_path=Path(raw_image_path),
+            probabilities_image_path=upload_location / ilastik_output_file_path.name,
+            outlines_image_path=upload_location
+            / cellprofiler_output_file_paths[0].name,
+        )
+
+        print(fms_IDs)
+        print(index)
+        # Add FMS ID's from uploaded files to postgres database
+        add_FMS_IDs_to_SQL_table(
+            metadata=fms_IDs,
+            conn=conn,
+            index=index,
+        )
+
+        status = "Complete"  # this wont be needed if we check after each task
+
+    except Exception as e:
+        print("is broke")
+        error, status = e, "Failed"
+        send_slack_notification_on_failure(file_name=raw_image.name, error=str(error))
+        image.cleanup()  # This needs an if exists
+        print(error)
+
+    now = datetime.now()
+    current_time = now.strftime("%H:%M:%S")
+
+    submission = {
+        "File Name": [raw_image.name],
+        "Status": [status],
+        "Date": [str(date.today())],
+        "Time": [current_time],
+    }
+
+    if status == "Complete":
+        submission["FMS ID"] = [fms_IDs["RawCeligoFMSId"]]
+    if status == "Failed":
+        submission["Error Code"] = [str(error)]
+
+    row_data = pd.DataFrame.from_dict(submission)
+    add_to_table(metadata=row_data, conn=conn, table=str(os.getenv("CELIGO_STATUS_DB")))
+
+    print(status)
 
 
 def job_complete_check(
     job_ID: int,
-    filelist: "list[pathlib.Path]",
+    filelist: List[pathlib.Path],
     name: str = "",
 ):
     """Provides a tool to check job status of SLURM Job ID. Job Status is Dictated by the following
@@ -182,7 +250,7 @@ def upload(
     raw_image_path: pathlib.Path,
     probabilities_image_path: pathlib.Path,
     outlines_image_path: pathlib.Path,
-):
+) -> dict:
 
     """Provides wrapped process for FMS upload. Throughout the Celigo pipeline there are a few files
     We want to preserve in FMS.
@@ -207,8 +275,9 @@ def upload(
 
     Returns
     -------
-    metadata: dictionary of upload IDS
+    metadata: dictionary of FMS IDS
     """
+
     raw_file_type = "Tiff Image"
     probabilities_file_type = "Probability Map"
     outlines_file_type = "Outline PNG"
@@ -225,56 +294,6 @@ def upload(
         outlines_image_path, outlines_file_type
     ).upload()
 
-    os.remove(probabilities_image_path)
+    os.remove(probabilities_image_path)  # this should be in a try
     os.remove(outlines_image_path)
     return metadata
-
-
-def add_FMS_IDs_to_SQL_table(
-    metadata: dict, postgres_password: str, index: str, table: str = TABLE_NAME
-):
-    """Provides wrapped process for Insertion of FMS IDS into Postgres Database. Throughout the Celigo pipeline there are a few files
-    We want to preserve in FMS, after upload these files FMS ID's are recorded in the Microscopy DB.
-
-    1) Original Image
-
-    2) Ilastik Probabilities
-
-    3) Cellprofiler Outlines
-
-    Parameters
-    ----------
-    metadata: dict
-        List of metadata in form [KEY] : [VALUE] to be inserted into database.
-    postgres_password : str
-        Password used to access Microscopy DB. (Contact Brian Whitney, Aditya Nath, Tyler Foster)
-    index : str
-        index defines the rows that the FMS ID's will be inserted into. In most cases this will be the Experiment ID,
-        which is just the original filename.
-    table: str = TABLE_NAME
-        Name of table in Postgres Database intended for import. Default is chosen by DEVS given current DB status
-    """
-
-    # Connect to DB
-    conn = psycopg2.connect(
-        database="pg_microscopy",
-        user="rw",
-        password=postgres_password,
-        host="pg-aics-microscopy-01.corp.alleninstitute.org",
-        port="5432",
-    )
-    cursor = conn.cursor()
-
-    # Submit Queries
-    for key in metadata:
-        query = f'UPDATE {table} SET "{key}" = %s WHERE "Experiment ID" = %s;'
-        try:
-            cursor.execute(query, (metadata[key], index))
-            conn.commit()
-        except (Exception, psycopg2.DatabaseError) as error:
-            print("Error: %s" % error)
-            conn.rollback()
-            cursor.close()
-            return 1
-
-    cursor.close()

@@ -33,14 +33,6 @@ class Args(argparse.Namespace):
         )
 
         p.add_argument(
-            "--postgres_password",
-            dest="postgres_password",
-            type=str,
-            help="password for accessing postgres password for metric upload.",
-            required=True,
-        )
-
-        p.add_argument(
             "--debug",
             help="Enable debug mode",
             default=False,
@@ -68,7 +60,7 @@ def main():
 
     try:
         run_all(
-            raw_image_path=args.image_path, postgres_password=args.postgres_password
+            raw_image_path=args.image_path,
         )
 
     except Exception as e:

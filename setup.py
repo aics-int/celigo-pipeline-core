@@ -75,6 +75,9 @@ setup(
             "celigo_pipeline_cli={}.bin.celigo_pipeline_core_cli:main".format(
                 PACKAGE_NAME
             ),
+            "celigo_pipeline_directory={}.bin.run_dir_cli:main".format(
+                PACKAGE_NAME
+            ),
         ]
     },
     keywords="celigo_pipeline_core",

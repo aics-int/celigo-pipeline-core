@@ -1,4 +1,5 @@
 from datetime import date, datetime
+import multiprocessing
 import os
 import pathlib
 from pathlib import Path
@@ -113,8 +114,6 @@ def run_all(
             / cellprofiler_output_file_paths[0].name,
         )
 
-        print(fms_IDs)
-        print(index)
         # Add FMS ID's from uploaded files to postgres database
         add_FMS_IDs_to_SQL_table(
             metadata=fms_IDs,
@@ -300,3 +299,31 @@ def upload(
     os.remove(probabilities_image_path)  # this should be in a try
     os.remove(outlines_image_path)
     return metadata
+
+
+def split(list_a, chunk_size):
+    for i in range(0, len(list_a), chunk_size):
+        yield list_a[i : i + chunk_size]
+
+
+def run_all_dir(dir_path: str, chunk_size: int = 30):
+    processes = []
+    start = time.perf_counter()
+
+    for subdir, _, files in os.walk(dir_path):
+        for files in list(split(files, chunk_size)):
+            for file in files:
+                if "350000" in file:
+                    path = f"{subdir}/{file}"
+                    p = multiprocessing.Process(target=run_all, args=[path])
+                    p.start()
+                    processes.append(p)
+                else:
+                    continue
+
+            for process in processes:
+                process.join()
+
+    finish = time.perf_counter()
+
+    print(f"Finished in {round(finish-start,2)} second(s)")

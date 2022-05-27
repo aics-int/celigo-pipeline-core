@@ -23,10 +23,6 @@ from .postgres_db_functions import (
     add_to_table,
 )
 
-TABLE_NAME = '"Celigo_96_Well_Data_Test_V_FOUR"'
-STATUS_TABLE_NAME = "null"
-
-
 def run_all(
     raw_image_path: str,
 ):

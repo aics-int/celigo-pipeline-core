@@ -114,8 +114,6 @@ def run_all(
             / cellprofiler_output_file_paths[0].name,
         )
 
-        print(fms_IDs)
-        print(index)
         # Add FMS ID's from uploaded files to postgres database
         add_FMS_IDs_to_SQL_table(
             metadata=fms_IDs,

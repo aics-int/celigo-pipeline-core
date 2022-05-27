@@ -2,13 +2,14 @@ from datetime import date, datetime
 import os
 import pathlib
 from pathlib import Path
+import pwd
 import shutil
 import subprocess
 import time
 from typing import List
 
 from aics_pipeline_uploaders import CeligoUploader
-from dotenv import find_dotenv, load_dotenv
+from dotenv import load_dotenv
 import pandas as pd
 import psycopg2
 
@@ -22,6 +23,7 @@ from .postgres_db_functions import (
     add_FMS_IDs_to_SQL_table,
     add_to_table,
 )
+
 
 def run_all(
     raw_image_path: str,
@@ -44,12 +46,13 @@ def run_all(
     if not os.path.exists(raw_image_path):
         raise FileNotFoundError(f"{raw_image_path} does not exist!")
 
+    env = f"/home/{pwd.getpwuid(os.getuid())[0]}/.env"
     image = CeligoSingleImageCore(raw_image_path)
     raw_image = Path(raw_image_path)
     upload_location = raw_image.parent
     status = "Running"
 
-    load_dotenv(find_dotenv())
+    load_dotenv(env)
 
     env_vars = [
         os.getenv("MICROSCOPY_DB"),

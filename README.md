@@ -49,7 +49,7 @@ See [CONTRIBUTING.md](CONTRIBUTING.md) for information related to developing the
 
     Running this command will start the process of publishing to PyPI
 
-6. `make bumpversion' - [release, major, minor, patch, dev]
+6. `make bumpversion` - [release, major, minor, patch, dev]
     
     update verisoning with new releases 
 

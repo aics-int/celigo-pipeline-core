@@ -1,7 +1,7 @@
 #!/usr/bin/env python
 # -*- coding: utf-8 -*-
 
-MODULE_VERSION = "2.2.0"
+MODULE_VERSION = "2.3.0"
 PACKAGE_NAME = "celigo_pipeline_core"
 
 """The setup script."""
@@ -91,6 +91,6 @@ setup(
     url="https://github.com/aics-int/Celigo-Code-Record",
     # Do not edit this string manually, always use bumpversion
     # Details in CONTRIBUTING.rst
-    version="2.2.0",
+    version="2.3.0",
     zip_safe=False,
 )

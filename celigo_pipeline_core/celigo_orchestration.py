@@ -47,7 +47,7 @@ def run_all(
 
     image = CeligoSingleImageCore(raw_image_path)
     raw_image = Path(raw_image_path)
-    upload_location = Path("/allen/aics/m/icroscopy/brian_whitney/temp_output")
+    upload_location = Path("/allen/aics/microscopy/brian_whitney/temp_output")
     status = "Running"
 
     load_dotenv(find_dotenv())

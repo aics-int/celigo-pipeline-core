@@ -124,7 +124,7 @@ class CeligoSixWellCore:
         script_config = {
             "memory": "60G",
             "image_path": f"'{str( self.image_path)}'",
-            "output_path": f"'{str(self.image_path.with_suffix(''))}_probabilities.tiff'",
+            "output_path": f"'{str(self.image_path.with_suffix(''))}_Probabilities.tiff'",
         }
 
         # Generates script for SLURM submission from templates.
@@ -149,11 +149,11 @@ class CeligoSixWellCore:
         # Creates filelist.txt
         with open(self.working_dir / "filelist.txt", "w+") as rfl:
             rfl.write(str(self.image_path) + "\n")
-            rfl.write(str(self.image_path.with_suffix("")) + "_probabilities.tiff")
+            rfl.write(str(self.image_path.with_suffix("")) + "_Probabilities.tiff")
 
         self.filelist_path = self.working_dir / "filelist.txt"
         job_ID = int(output.stdout.decode("utf-8").split(" ")[-1][:-1])
-        return job_ID, Path(f"{self.image_path.with_suffix('')}_probabilities.tiff")
+        return job_ID, Path(f"{self.image_path.with_suffix('')}_Probabilities.tiff")
 
     def run_cellprofiler(self):
         """Applies the Cell Profiler Pipeline processing to the downsampled image using the Ilastik
@@ -201,6 +201,7 @@ class CeligoSixWellCore:
         self.cell_profiler_output_path = self.working_dir / "cell_profiler_outputs"
 
         print("1")
+        print(output)
         # Splits job id int from output
         job_ID = int(output.stdout.decode("utf-8").split(" ")[-1][:-1])
 

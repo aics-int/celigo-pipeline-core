@@ -103,7 +103,7 @@ class CeligoSixWellCore:
         # Sets path to resized image to image path for future use
         self.image_path = (
             self.image_path.parent
-            / f"{self.image_path.with_suffix('').name}_rescale.tiff"
+            / f"{self.image_path.with_suffix('').name}_RescaleAndCrop.tiff"
         )
 
         job_ID = int(output.stdout.decode("utf-8").split(" ")[-1][:-1])

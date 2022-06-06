@@ -165,25 +165,30 @@ class CeligoSixWellCore:
             A list of namedtuples, The first of which being the SLURM job ID and the second
             being the desired output Path.
         """
-
+        print("1")
         # Parameters to input to bash script template.
         script_config = {
             "filelist_path": str(self.filelist_path),
             "output_dir": str(self.working_dir / "cell_profiler_outputs"),
             "pipeline_path": str(self.cellprofiler_pipeline_path),
         }
-
+        print("1")
         # Generates script for SLURM submission from templates.
         jinja_env = Environment(
             loader=PackageLoader(
                 package_name="celigo_pipeline_core", package_path="templates"
             )
         )
+        print("1")
+
         script_body = jinja_env.get_template("cellprofiler_template.j2").render(
             script_config
         )
+        print("1")
+
         with open(self.working_dir / "cellprofiler.sh", "w+") as rsh:
             rsh.write(script_body)
+        print("1")
 
         # Submit bash script cellprofiler.sh on SLURM
         output = subprocess.run(
@@ -191,10 +196,11 @@ class CeligoSixWellCore:
             check=True,
             capture_output=True,
         )
-
+        print("1")
         # Set output path
         self.cell_profiler_output_path = self.working_dir / "cell_profiler_outputs"
 
+        print("1")
         # Splits job id int from output
         job_ID = int(output.stdout.decode("utf-8").split(" ")[-1][:-1])
 

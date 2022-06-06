@@ -122,6 +122,7 @@ class CeligoSixWellCore:
 
         # Parameters to input to bash script template
         script_config = {
+            "memory": "60G",
             "image_path": f"'{str( self.image_path)}'",
             "output_path": f"'{str(self.image_path.with_suffix(''))}_probabilities.tiff'",
         }

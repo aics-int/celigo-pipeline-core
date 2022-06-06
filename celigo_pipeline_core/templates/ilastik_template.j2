@@ -1,7 +1,7 @@
 #!/bin/bash
 #SBATCH --time=9-24:00:00
 #SBATCH --partition=aics_cpu_general
-#SBATCH --mem=12G
+#SBATCH --mem={{ memory }}
 
 # activate Conda
 . /allen/aics/apps/prod/anaconda/Anaconda3-5.1.0/bin/activate

@@ -122,7 +122,7 @@ class CeligoSingleImageCore:
         # Sets path to resized image to image path for future use
         self.image_path = (
             self.image_path.parent
-            / f"{self.image_path.with_suffix('').name}_rescale.tiff"
+            / f"{self.image_path.with_suffix('').name}_RescaleAndCrop.tiff"
         )
 
         job_ID = int(output.stdout.decode("utf-8").split(" ")[-1][:-1])
@@ -141,6 +141,7 @@ class CeligoSingleImageCore:
 
         # Parameters to input to bash script template
         script_config = {
+            "memory": "12G",
             "image_path": f"'{str( self.image_path)}'",
             "output_path": f"'{str(self.image_path.with_suffix(''))}_probabilities.tiff'",
         }

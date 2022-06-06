@@ -92,6 +92,7 @@ class CeligoSingleImageCore:
 
         # Defines variables for bash script
         script_config = {
+            "memory": "6G",
             "filelist_path": str(self.resize_filelist_path),
             "output_path": str(self.working_dir),
             "pipeline_path": str(self.rescale_pipeline_path),

@@ -14,7 +14,11 @@ from dotenv import load_dotenv
 import pandas as pd
 import psycopg2
 
-from .celigo_single_image import CeligoSixWellCore
+from .celigo_single_image import (
+    CeligoImage,
+    CeligoSingleImageCore,
+    CeligoSixWellCore,
+)
 from .notifcations import (
     send_slack_notification_on_failure,
 )
@@ -65,11 +69,11 @@ def run_all(
         )
 
     if os.path.getsize(raw_image_path) > 100000000:
-        image = CeligoSixWellCore(raw_image_path)
+        image = CeligoSixWellCore(raw_image_path)  # type: CeligoImage
         table = str(os.getenv("CELIGO_6_WELL_METRICS_DB"))
         print("6 Well")
     else:
-        image = CeligoSixWellCore(raw_image_path)
+        image = CeligoSingleImageCore(raw_image_path)
         table = str(os.getenv("CELIGO_METRICS_DB"))
         print("96 Well")
 

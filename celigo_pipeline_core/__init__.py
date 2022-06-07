@@ -14,6 +14,9 @@ from .celigo_orchestration import (
     job_in_queue_check,
     run_all,
 )
+from .celigo_single_image.celigo_image import (
+    CeligoImage,
+)
 from .celigo_single_image.celigo_single_image_core import (
     CeligoSingleImageCore,
 )

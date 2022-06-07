@@ -1,3 +1,4 @@
+from .celigo_image import CeligoImage
 from .celigo_single_image_core import (
     CeligoSingleImageCore,
 )

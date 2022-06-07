@@ -11,9 +11,10 @@ import pandas as pd
 
 from .. import pipelines
 from ..postgres_db_functions import add_to_table
+from .celigo_image import CeligoImage
 
 
-class CeligoSingleImageCore:
+class CeligoSingleImageCore(CeligoImage):
     """This Class provides utility functions for the Celigo
     pipeline to prepare single celigo images.
 
@@ -274,9 +275,3 @@ class CeligoSingleImageCore:
         add_to_table(conn, result, table)
 
         return self.raw_image_path.name
-
-    def cleanup(self):
-        """Removes created working directory from SLURM so
-        that the work space does not become overencumbered.
-        """
-        shutil.rmtree(self.working_dir)

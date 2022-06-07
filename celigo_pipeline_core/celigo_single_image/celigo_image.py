@@ -1,3 +1,4 @@
+import abc
 import shutil
 
 
@@ -11,14 +12,18 @@ class CeligoImage:
         """
         shutil.rmtree(self.working_dir)
 
+    @abc.abstractmethod
     def downsample(self):
-        return ["None", "None"]
+        pass
 
+    @abc.abstractmethod
     def run_ilastik(self):
-        return ["None", "None"]
+        pass
 
+    @abc.abstractmethod
     def run_cellprofiler(self):
-        return ["None", ["None"]]
+        pass
 
+    @abc.abstractmethod
     def upload_metrics(self, conn, table: str) -> str:
-        return "None"
+        pass

@@ -113,7 +113,7 @@ def run_all(
         )
 
         # Cleans temporary files from slurm node
-        image.cleanup()
+        # image.cleanup()
 
         # Upload IMG, Probababilities, Outlines to FMS
         print("uploading")
@@ -138,7 +138,7 @@ def run_all(
         print("is broke")
         error, status = e, "Failed"
         send_slack_notification_on_failure(file_name=raw_image.name, error=str(error))
-        image.cleanup()  # This needs an if exists
+        # image.cleanup()  # This needs an if exists
         print(error)
 
     now = datetime.now()
@@ -221,7 +221,7 @@ def job_complete_check(
             # the job is no longer in the queue. Then the next logic statements come
             # into play to determine if the run was sucessful
 
-        elif not all([os.path.isfile(f) for f in filelist]) and count > 200:
+        elif not all([os.path.isfile(f) for f in filelist]) and count > 600:
             # This logic is only reached if the process ran and is no longer in the queue
             # Counts to 600 to wait and see if the output file gets created. If it doesnt then
             # prints that the job has failed and breaks out of the loop.

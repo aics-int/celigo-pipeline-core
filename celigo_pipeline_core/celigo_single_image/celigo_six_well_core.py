@@ -5,9 +5,12 @@ import pwd
 import shutil
 import subprocess
 
+from aics_pipeline_uploaders import CeligoUploader
 from jinja2 import Environment, PackageLoader
+import pandas as pd
 
 from .. import pipelines
+from ..postgres_db_functions import add_to_table
 
 
 class CeligoSixWellCore:
@@ -165,30 +168,27 @@ class CeligoSixWellCore:
             A list of namedtuples, The first of which being the SLURM job ID and the second
             being the desired output Path.
         """
-        print("1")
+
         # Parameters to input to bash script template.
         script_config = {
             "filelist_path": str(self.filelist_path),
             "output_dir": str(self.working_dir / "cell_profiler_outputs"),
             "pipeline_path": str(self.cellprofiler_pipeline_path),
         }
-        print("1")
+
         # Generates script for SLURM submission from templates.
         jinja_env = Environment(
             loader=PackageLoader(
                 package_name="celigo_pipeline_core", package_path="templates"
             )
         )
-        print("1")
 
         script_body = jinja_env.get_template("cellprofiler_template.j2").render(
             script_config
         )
-        print("1")
 
         with open(self.working_dir / "cellprofiler.sh", "w+") as rsh:
             rsh.write(script_body)
-        print("1")
 
         # Submit bash script cellprofiler.sh on SLURM
         output = subprocess.run(
@@ -196,16 +196,62 @@ class CeligoSixWellCore:
             check=True,
             capture_output=True,
         )
-        print("1")
+
         # Set output path
         self.cell_profiler_output_path = self.working_dir / "cell_profiler_outputs"
 
-        print("1")
-        print(output)
         # Splits job id int from output
         job_ID = int(output.stdout.decode("utf-8").split(" ")[-1][:-1])
 
-        return job_ID
+        return (
+            job_ID,
+            [
+                Path(
+                    f"{script_config['output_dir']}/{self.image_path.with_suffix('').name}_outlines.png"
+                ),
+                Path(f"{script_config['output_dir']}/ImageDATA.csv"),
+            ],
+        )
+
+    def upload_metrics(self, conn, table: str) -> str:
+        """Uploads the metrics from the cell profiler pipeline run and comnbines them with
+        the Images Metadata. Then Uploads metrics to postgres database.
+
+        Parameters
+        ----------
+        postgres_password: str
+            To access the postgres database a password is needed.
+
+        table_name: str = '"Celigo_96_Well_Data_Test"'
+            There are many tables in the Microscopy DB. This parameter specifies which table
+            to insert metrics into.
+
+        Returns
+        -------
+        self.raw_image_path.name
+            returns the original files name. This return is used to index 'table_name' in the
+            future in order to insert additional metrics.
+        """
+        celigo_image = CeligoUploader(self.raw_image_path, file_type="temp")
+        metadata = celigo_image.metadata["microscopy"]
+
+        # Building Metric Output from Cellprofiler outputs
+        ImageDATA = pd.read_csv(self.cell_profiler_output_path / "ImageDATA.csv")
+
+        # formatting
+        ImageDATA["Metadata_DateString"] = (
+            metadata["celigo"]["scan_date"] + " " + metadata["celigo"]["scan_time"]
+        )
+        ImageDATA["barcode"] = metadata["plate_barcode"]
+        ImageDATA["Metadata_Well"] = celigo_image.well
+        ImageDATA["Experiment ID"] = self.raw_image_path.name
+        ImageDATA["row"] = int(celigo_image.row) - 1
+        ImageDATA["col"] = int(celigo_image.col) - 1
+        result = ImageDATA.drop(columns=["ImageNumber"])
+
+        add_to_table(conn, result, table)
+
+        return self.raw_image_path.name
 
     def cleanup(self):
         """Removes created working directory from SLURM so

@@ -14,9 +14,7 @@ from dotenv import load_dotenv
 import pandas as pd
 import psycopg2
 
-from .celigo_single_image import (
-    CeligoSingleImageCore,
-)
+from .celigo_single_image import CeligoSixWellCore
 from .notifcations import (
     send_slack_notification_on_failure,
 )
@@ -48,13 +46,7 @@ def run_all(
         raise FileNotFoundError(f"{raw_image_path} does not exist!")
 
     env = f"/home/{pwd.getpwuid(os.getuid())[0]}/.env"
-    image = CeligoSingleImageCore(raw_image_path)
-    raw_image = Path(raw_image_path)
-    upload_location = raw_image.parent
-    status = "Running"
-
     load_dotenv(env)
-
     env_vars = [
         os.getenv("MICROSCOPY_DB"),
         os.getenv("MICROSCOPY_DB_USER"),
@@ -72,13 +64,31 @@ def run_all(
             "Environment variables were not loaded correctly. Try adding 'load_dotenv(find_dotenv())' to your script"
         )
 
-    conn = psycopg2.connect(
-        database=os.getenv("MICROSCOPY_DB"),
-        user=os.getenv("MICROSCOPY_DB_USER"),
-        password=os.getenv("MICROSCOPY_DB_PASSWORD"),
-        host=os.getenv("MICROSCOPY_DB_HOST"),
-        port=os.getenv("MICROSCOPY_DB_PORT"),
-    )
+    if os.path.getsize(raw_image_path) > 100000000:
+        image = CeligoSixWellCore(raw_image_path)
+        table = str(os.getenv("CELIGO_6_WELL_METRICS_DB"))
+        print("6 Well")
+    else:
+        image = CeligoSixWellCore(raw_image_path)
+        table = str(os.getenv("CELIGO_METRICS_DB"))
+        print("96 Well")
+
+    raw_image = Path(raw_image_path)
+    upload_location = raw_image.parent
+    status = "Running"
+
+    try:
+        conn = psycopg2.connect(
+            database=os.getenv("MICROSCOPY_DB"),
+            user=os.getenv("MICROSCOPY_DB_USER"),
+            password=os.getenv("MICROSCOPY_DB_PASSWORD"),
+            host=os.getenv("MICROSCOPY_DB_HOST"),
+            port=os.getenv("MICROSCOPY_DB_PORT"),
+        )
+    except Exception as e:
+        print("Connection Error: " + str(e))
+
+    status = "Running"
 
     try:
         job_ID, downsample_output_file_path = image.downsample()
@@ -90,7 +100,7 @@ def run_all(
             job_ID, cellprofiler_output_file_paths, "cell profiler"
         )  # add to status loop return Status
 
-        index = image.upload_metrics(conn, str(os.getenv("CELIGO_METRICS_DB")))
+        index = image.upload_metrics(conn, table)
 
         # Copy files off isilon for off cluster upload
         shutil.copyfile(
@@ -119,6 +129,7 @@ def run_all(
             metadata=fms_IDs,
             conn=conn,
             index=index,
+            table=table,
         )
 
         status = "Complete"  # this wont be needed if we check after each task

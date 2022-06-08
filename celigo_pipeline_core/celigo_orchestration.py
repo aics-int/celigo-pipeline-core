@@ -311,8 +311,8 @@ def upload(
         outlines_image_path, outlines_file_type
     ).upload()
 
-    os.remove(probabilities_image_path)  # this should be in a try
-    os.remove(outlines_image_path)
+    # os.remove(probabilities_image_path)  # this should be in a try
+    # os.remove(outlines_image_path)
     return metadata
 
 

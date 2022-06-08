@@ -285,23 +285,23 @@ def upload(
     metadata = {}
 
     metadata["RawCeligoFMSId"] = CeligoUploader(raw_image_path, raw_file_type).upload()
-    try:
-        metadata["ProbabilitiesMapFMSId"] = CeligoUploader(
-            probabilities_image_path, probabilities_file_type
-        ).upload()
-        print("Sucess")
-    except ValueError:
-        metadata["ProbabilitiesMapFMSId"] = "Error"
-        print("Failed")
+    # try:
+    metadata["ProbabilitiesMapFMSId"] = CeligoUploader(
+        probabilities_image_path, probabilities_file_type
+    ).upload()
+    print("Sucess")
+    # except ValueError:
+    # metadata["ProbabilitiesMapFMSId"] = "Error"
+    # print("Failed")
 
-    try:
-        metadata["OutlinesFMSId"] = CeligoUploader(
-            outlines_image_path, outlines_file_type
-        ).upload()
-        print("Sucess")
-    except ValueError:
-        metadata["OutlinesFMSId"] = "Error"
-        print("Failed")
+    # try:
+    metadata["OutlinesFMSId"] = CeligoUploader(
+        outlines_image_path, outlines_file_type
+    ).upload()
+    print("Sucess")
+    # except ValueError:
+    # metadata["OutlinesFMSId"] = "Error"
+    # print("Failed")
 
     os.remove(probabilities_image_path)  # this should be in a try
     os.remove(outlines_image_path)

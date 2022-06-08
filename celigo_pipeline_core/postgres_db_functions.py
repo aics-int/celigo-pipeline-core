@@ -39,7 +39,7 @@ def add_FMS_IDs_to_SQL_table(
     cursor = conn.cursor()
     # Submit Queries
     for key in metadata:
-        query = f'UPDATE {os.getenv("CELIGO_METRICS_DB")} SET "{key}" = %s WHERE "Experiment ID" = %s;'
+        query = f'UPDATE {os.getenv("CELIGO_METRICS_DB_OLD")} SET "{key}" = %s WHERE "Experiment ID" = %s;'
         try:
             cursor.execute(query, (metadata[key], index))
             conn.commit()
@@ -97,7 +97,7 @@ def get_report_data(date: date):
         port=os.getenv("MICROSCOPY_DB_PORT"),
     )
     cursor = conn.cursor()
-    query = f'select * from {os.getenv("CELIGO_STATUS_DB")} where "Date" = %s'
+    query = f'select * from {os.getenv("CELIGO_STATUS_DB_OLD")} where "Date" = %s'
     cursor.execute(query, (str(date),))
     records = cursor.fetchall()
     data = []

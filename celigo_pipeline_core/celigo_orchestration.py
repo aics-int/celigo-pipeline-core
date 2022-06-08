@@ -50,7 +50,7 @@ def run_all(
     env = f"/home/{pwd.getpwuid(os.getuid())[0]}/.env"
     image = CeligoSingleImageCore(raw_image_path)
     raw_image = Path(raw_image_path)
-    upload_location = raw_image.parent
+    upload_location = Path("/allen/aics/microscopy/brian_whitney/temp_output")
     status = "Running"
 
     load_dotenv(env)
@@ -62,8 +62,8 @@ def run_all(
         os.getenv("MICROSCOPY_DB_HOST"),
         os.getenv("MICROSCOPY_DB_PORT"),
         os.getenv("CELIGO_SLACK_TOKEN"),
-        os.getenv("CELIGO_METRICS_DB"),
-        os.getenv("CELIGO_STATUS_DB"),
+        os.getenv("CELIGO_METRICS_DB_OLD"),
+        os.getenv("CELIGO_STATUS_DB_OLD"),
         os.getenv("CELIGO_CHANNEL_NAME"),
     ]
 
@@ -90,7 +90,7 @@ def run_all(
             job_ID, cellprofiler_output_file_paths, "cell profiler"
         )  # add to status loop return Status
 
-        index = image.upload_metrics(conn, str(os.getenv("CELIGO_METRICS_DB")))
+        index = image.upload_metrics(conn, str(os.getenv("CELIGO_METRICS_DB_OLD")))
 
         # Copy files off isilon for off cluster upload
         shutil.copyfile(
@@ -106,7 +106,6 @@ def run_all(
         image.cleanup()
 
         # Upload IMG, Probababilities, Outlines to FMS
-        print("uploading")
         fms_IDs = upload(
             raw_image_path=Path(raw_image_path),
             probabilities_image_path=upload_location / ilastik_output_file_path.name,
@@ -146,7 +145,9 @@ def run_all(
         submission["Error Code"] = [str(error)]
 
     row_data = pd.DataFrame.from_dict(submission)
-    add_to_table(metadata=row_data, conn=conn, table=str(os.getenv("CELIGO_STATUS_DB")))
+    add_to_table(
+        metadata=row_data, conn=conn, table=str(os.getenv("CELIGO_STATUS_DB_OLD"))
+    )
 
     print(status)
 
@@ -287,14 +288,23 @@ def upload(
     metadata = {}
 
     metadata["RawCeligoFMSId"] = CeligoUploader(raw_image_path, raw_file_type).upload()
-
+    # try:
     metadata["ProbabilitiesMapFMSId"] = CeligoUploader(
         probabilities_image_path, probabilities_file_type
     ).upload()
+    print("Sucess")
+    # except ValueError:
+    # metadata["ProbabilitiesMapFMSId"] = "Error"
+    # print("Failed")
 
+    # try:
     metadata["OutlinesFMSId"] = CeligoUploader(
         outlines_image_path, outlines_file_type
     ).upload()
+    print("Sucess")
+    # except ValueError:
+    # metadata["OutlinesFMSId"] = "Error"
+    # print("Failed")
 
     os.remove(probabilities_image_path)  # this should be in a try
     os.remove(outlines_image_path)

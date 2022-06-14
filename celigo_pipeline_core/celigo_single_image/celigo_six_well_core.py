@@ -234,16 +234,18 @@ class CeligoSixWellCore(CeligoImage):
             future in order to insert additional metrics.
         """
         celigo_image = CeligoUploader(self.raw_image_path, file_type="temp")
-        metadata = celigo_image.metadata["microscopy"]
+        self.metadata = celigo_image.metadata["microscopy"]
 
         # Building Metric Output from Cellprofiler outputs
         ImageDATA = pd.read_csv(self.cell_profiler_output_path / "ImageDATA.csv")
 
         # formatting
         ImageDATA["Metadata_DateString"] = (
-            metadata["celigo"]["scan_date"] + " " + metadata["celigo"]["scan_time"]
+            self.metadata["celigo"]["scan_date"]
+            + " "
+            + self.metadata["celigo"]["scan_time"]
         )
-        ImageDATA["barcode"] = metadata["plate_barcode"]
+        ImageDATA["barcode"] = self.metadata["plate_barcode"]
         ImageDATA["Metadata_Well"] = celigo_image.well
         ImageDATA["Experiment ID"] = self.raw_image_path.name
         ImageDATA["row"] = int(celigo_image.row) - 1

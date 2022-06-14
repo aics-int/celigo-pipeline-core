@@ -117,7 +117,7 @@ def run_all(
         )
 
         # Cleans temporary files from slurm node
-        # image.cleanup()
+        image.cleanup()
 
         # Upload IMG, Probababilities, Outlines to FMS
         print("uploading")
@@ -142,7 +142,7 @@ def run_all(
         print("is broke")
         error, status = e, "Failed"
         send_slack_notification_on_failure(file_name=raw_image.name, error=str(error))
-        # image.cleanup()  # This needs an if exists
+        image.cleanup()  # This needs an if exists
         print(error)
 
     now = datetime.now()

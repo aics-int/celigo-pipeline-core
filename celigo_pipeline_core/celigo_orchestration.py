@@ -328,7 +328,7 @@ def run_all_dir(dir_path: str, chunk_size: int = 30):
     for subdir, _, files in os.walk(dir_path):
         for files in list(split(files, chunk_size)):
             for file in files:
-                if "350000" in file:
+                if "350000" in file and "escale" not in file:
                     path = f"{subdir}/{file}"
                     p = multiprocessing.Process(target=run_all, args=[path])
                     p.start()

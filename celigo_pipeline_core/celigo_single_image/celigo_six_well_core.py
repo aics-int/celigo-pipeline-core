@@ -175,6 +175,7 @@ class CeligoSixWellCore(CeligoImage):
             "filelist_path": str(self.filelist_path),
             "output_dir": str(self.working_dir / "cell_profiler_outputs"),
             "pipeline_path": str(self.cellprofiler_pipeline_path),
+            "memory": "50G",
         }
 
         # Generates script for SLURM submission from templates.

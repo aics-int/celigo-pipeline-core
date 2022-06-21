@@ -225,7 +225,7 @@ def job_complete_check(
             # the job is no longer in the queue. Then the next logic statements come
             # into play to determine if the run was sucessful
 
-        elif not all([os.path.isfile(f) for f in filelist]) and count > 600:
+        elif not all([os.path.isfile(f) for f in filelist]) and count > 1000:
             # This logic is only reached if the process ran and is no longer in the queue
             # Counts to 600 to wait and see if the output file gets created. If it doesnt then
             # prints that the job has failed and breaks out of the loop.

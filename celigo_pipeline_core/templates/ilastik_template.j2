@@ -10,6 +10,6 @@
 conda activate /allen/aics/apps/prod/venvs/cellprofiler/v4.1.3
 
 # run Ilastik
-/allen/aics/apps/prod/ilastik/ilastik-1.3.3post3-Linux/run_ilastik.sh --headless --project="/allen/aics/microscopy/CellProfiler_4.1.3_Testing/Celigo_96well_v_0.1.ilp" --output_format=tiff --export_source="Probabilities" --output_filename_format={{ output_path }} {{ image_path }}
+/allen/aics/apps/prod/ilastik/ilastik-1.3.3post3-Linux/run_ilastik.sh --headless --project="/allen/aics/microscopy/CellProfiler_4.1.3_Testing/96wellPipeline_v2/96_well_colony_celigo_v2.ilp" --output_format=tiff --export_source="Probabilities" --output_filename_format={{ output_path }} {{ image_path }}
 
 # need to remove refrences to things on the isilon. Currently cannot import these with package.

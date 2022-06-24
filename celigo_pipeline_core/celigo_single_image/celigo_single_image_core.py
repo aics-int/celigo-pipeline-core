@@ -52,7 +52,7 @@ class CeligoSingleImageCore(CeligoImage):
         # Creating pipeline paths for templates
         with pkg_resources.path(pipelines, "rescale_pipeline.cppipe") as p:
             self.rescale_pipeline_path = p
-        with pkg_resources.path(pipelines, "colony_morphology.model") as p:
+        with pkg_resources.path(pipelines, "colonymorphology.model") as p:
             self.classification_model_path = p
 
         # Creating template for 96 well processing
@@ -64,15 +64,13 @@ class CeligoSingleImageCore(CeligoImage):
                 package_name="celigo_pipeline_core", package_path="templates"
             )
         )
-        script_body = jinja_env.get_template(
-            "96_well_pipeline_v1.0_tempalate.j2"
-        ).render(script_config)
-        with open(
-            self.working_dir / "96_well_colony_pipeline_v_0.1.cppipe", "w+"
-        ) as rsh:
+        script_body = jinja_env.get_template("96_well_pipeline_v2_tempalate.j2").render(
+            script_config
+        )
+        with open(self.working_dir / "96_well_colony_pipeline_v2.cppipe", "w+") as rsh:
             rsh.write(script_body)
         self.cellprofiler_pipeline_path = (
-            self.working_dir / "96_well_colony_pipeline_v_0.1.cppipe"
+            self.working_dir / "96_well_colony_pipeline_v2.cppipe"
         )
 
     def downsample(self):

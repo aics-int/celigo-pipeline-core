@@ -225,8 +225,9 @@ class CeligoSingleImageCore(CeligoImage):
                 ),
                 Path(f"{script_config['output_dir']}/ColonyDATA.csv"),
                 Path(f"{script_config['output_dir']}/ImageDATA.csv"),
-                Path(f"{script_config['output_dir']}/BallCraterClassifiedDATA.csv"),
-                Path(f"{script_config['output_dir']}/EdgeClassifiedDATA.csv"),
+                Path(
+                    f"{script_config['output_dir']}/PoorMorphObjectDATA.csv"
+                ),  # These will eventually have to be modular
             ],
         )
 

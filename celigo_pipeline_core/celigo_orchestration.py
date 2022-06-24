@@ -121,6 +121,7 @@ def run_all(
 
         # Upload IMG, Probababilities, Outlines to FMS
         print("uploading")
+
         fms_IDs = upload(
             raw_image_path=Path(raw_image_path),
             probabilities_image_path=upload_location / ilastik_output_file_path.name,
@@ -128,6 +129,7 @@ def run_all(
             / cellprofiler_output_file_paths[0].name,
         )
 
+        print("Upload Complete")
         # Add FMS ID's from uploaded files to postgres database
         add_FMS_IDs_to_SQL_table(
             metadata=fms_IDs,
@@ -143,7 +145,7 @@ def run_all(
         error, status = e, "Failed"
         send_slack_notification_on_failure(file_name=raw_image.name, error=str(error))
         image.cleanup()  # This needs an if exists
-        print(error)
+        print("Error: " + str(error))
 
     now = datetime.now()
     current_time = now.strftime("%H:%M:%S")
@@ -302,15 +304,16 @@ def upload(
     metadata = {}
 
     metadata["RawCeligoFMSId"] = CeligoUploader(raw_image_path, raw_file_type).upload()
+    print(metadata["RawCeligoFMSId"])
 
     metadata["ProbabilitiesMapFMSId"] = CeligoUploader(
         probabilities_image_path, probabilities_file_type
     ).upload()
-
+    print(metadata["ProbabilitiesMapFMSId"])
     metadata["OutlinesFMSId"] = CeligoUploader(
         outlines_image_path, outlines_file_type
     ).upload()
-
+    print(metadata["OutlinesFMSId"])
     # os.remove(probabilities_image_path)  # this should be in a try
     # os.remove(outlines_image_path)
     return metadata

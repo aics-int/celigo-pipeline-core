@@ -30,6 +30,9 @@ from .postgres_db_functions import (
 
 def run_all(
     raw_image_path: str,
+    env: str = "stg",
+    env_vars: str = f"/home/{pwd.getpwuid(os.getuid())[0]}/.env",
+    export_location: str = "",
 ):
     """Process Celigo Images from `raw_image_path`. Submits jobs for Image Downsampling,
     Image Ilastik Processing, and Image Celigo Processing. After job completion,
@@ -48,37 +51,41 @@ def run_all(
     # Check if path is real
     if not os.path.exists(raw_image_path):
         raise FileNotFoundError(f"{raw_image_path} does not exist!")
+    raw_image = Path(raw_image_path)
 
-    env = f"/home/{pwd.getpwuid(os.getuid())[0]}/.env"
-    load_dotenv(env)
-    env_vars = [
-        os.getenv("MICROSCOPY_DB"),
-        os.getenv("MICROSCOPY_DB_USER"),
-        os.getenv("MICROSCOPY_DB_PASSWORD"),
-        os.getenv("MICROSCOPY_DB_HOST"),
-        os.getenv("MICROSCOPY_DB_PORT"),
-        os.getenv("CELIGO_SLACK_TOKEN"),
-        os.getenv("CELIGO_METRICS_DB"),
-        os.getenv("CELIGO_STATUS_DB"),
-        os.getenv("CELIGO_CHANNEL_NAME"),
-    ]
+    load_dotenv(env_vars)
 
-    if any(env_vars) == "None":
+    if (
+        any(
+            [
+                os.getenv("MICROSCOPY_DB"),
+                os.getenv("MICROSCOPY_DB_USER"),
+                os.getenv("MICROSCOPY_DB_PASSWORD"),
+                os.getenv("MICROSCOPY_DB_HOST"),
+                os.getenv("MICROSCOPY_DB_PORT"),
+                os.getenv("CELIGO_SLACK_TOKEN"),
+                os.getenv("CELIGO_METRICS_DB"),
+                os.getenv("CELIGO_STATUS_DB"),
+                os.getenv("CELIGO_CHANNEL_NAME"),
+            ]
+        )
+        == "None"
+    ):
         raise EnvironmentError(
             "Environment variables were not loaded correctly. Try adding 'load_dotenv(find_dotenv())' to your script"
         )
 
     if os.path.getsize(raw_image_path) > 100000000:
-        image = CeligoSixWellCore(raw_image_path)  # type: CeligoImage
+        image = CeligoSixWellCore(
+            raw_image_path=raw_image_path, env=env
+        )  # type: CeligoImage
         table = str(os.getenv("CELIGO_6_WELL_METRICS_DB"))
         print("6 Well")
     else:
-        image = CeligoSingleImageCore(raw_image_path)
+        image = CeligoSingleImageCore(raw_image_path=raw_image_path)
         table = str(os.getenv("CELIGO_METRICS_DB"))
         print("96 Well")
 
-    raw_image = Path(raw_image_path)
-    upload_location = raw_image.parent
     status = "Running"
 
     try:
@@ -107,36 +114,37 @@ def run_all(
         index = image.upload_metrics(conn, table)
 
         # Copy files off isilon for off cluster upload
-        shutil.copyfile(
-            ilastik_output_file_path,
-            upload_location / ilastik_output_file_path.name,
-        )
-        shutil.copyfile(
-            cellprofiler_output_file_paths[0],
-            upload_location / cellprofiler_output_file_paths[0].name,
-        )
+        if export_location != "":
+            shutil.copyfile(
+                ilastik_output_file_path,
+                Path(export_location) / ilastik_output_file_path.name,
+            )
+            shutil.copyfile(
+                cellprofiler_output_file_paths[0],
+                Path(export_location) / cellprofiler_output_file_paths[0].name,
+            )
+            print("Export Complete")
 
         # Cleans temporary files from slurm node
         image.cleanup()
 
-        # Upload IMG, Probababilities, Outlines to FMS
-        print("uploading")
+        if export_location != "":
+            fms_IDs = upload(
+                raw_image_path=Path(raw_image_path),
+                probabilities_image_path=Path(export_location)
+                / ilastik_output_file_path.name,
+                outlines_image_path=Path(export_location)
+                / cellprofiler_output_file_paths[0].name,
+                env=env,
+            )
 
-        fms_IDs = upload(
-            raw_image_path=Path(raw_image_path),
-            probabilities_image_path=upload_location / ilastik_output_file_path.name,
-            outlines_image_path=upload_location
-            / cellprofiler_output_file_paths[0].name,
-        )
-
-        print("Upload Complete")
-        # Add FMS ID's from uploaded files to postgres database
-        add_FMS_IDs_to_SQL_table(
-            metadata=fms_IDs,
-            conn=conn,
-            index=index,
-            table=table,
-        )
+            # Add FMS ID's from uploaded files to postgres database
+            add_FMS_IDs_to_SQL_table(
+                metadata=fms_IDs,
+                conn=conn,
+                index=index,
+                table=table,
+            )
 
         status = "Complete"  # this wont be needed if we check after each task
 
@@ -269,6 +277,7 @@ def upload(
     raw_image_path: pathlib.Path,
     probabilities_image_path: pathlib.Path,
     outlines_image_path: pathlib.Path,
+    env: str = "stg",
 ) -> dict:
 
     """Provides wrapped process for FMS upload. Throughout the Celigo pipeline there are a few files
@@ -303,17 +312,17 @@ def upload(
 
     metadata = {}
 
-    metadata["RawCeligoFMSId"] = CeligoUploader(raw_image_path, raw_file_type).upload()
-    print(metadata["RawCeligoFMSId"])
+    metadata["RawCeligoFMSId"] = CeligoUploader(
+        raw_image_path, raw_file_type, env=env
+    ).upload()
 
     metadata["ProbabilitiesMapFMSId"] = CeligoUploader(
-        probabilities_image_path, probabilities_file_type
+        probabilities_image_path, probabilities_file_type, env=env
     ).upload()
-    print(metadata["ProbabilitiesMapFMSId"])
     metadata["OutlinesFMSId"] = CeligoUploader(
-        outlines_image_path, outlines_file_type
+        outlines_image_path, outlines_file_type, env=env
     ).upload()
-    print(metadata["OutlinesFMSId"])
+
     # os.remove(probabilities_image_path)  # this should be in a try
     # os.remove(outlines_image_path)
     return metadata
@@ -324,7 +333,14 @@ def split(list_a, chunk_size):
         yield list_a[i : i + chunk_size]
 
 
-def run_all_dir(dir_path: str, chunk_size: int = 30):
+def run_all_dir(
+    dir_path: str,
+    chunk_size: int = 30,
+    env: str = "stg",
+    env_vars: str = f"/home/{pwd.getpwuid(os.getuid())[0]}/.env",
+    export_location: str = "",
+):
+
     processes = []
     start = time.perf_counter()
 
@@ -333,7 +349,9 @@ def run_all_dir(dir_path: str, chunk_size: int = 30):
             for file in files:
                 if "350000" in file and "escale" not in file:
                     path = f"{subdir}/{file}"
-                    p = multiprocessing.Process(target=run_all, args=[path])
+                    p = multiprocessing.Process(
+                        target=run_all, args=[path, env, env_vars, export_location]
+                    )
                     p.start()
                     processes.append(p)
                 else:

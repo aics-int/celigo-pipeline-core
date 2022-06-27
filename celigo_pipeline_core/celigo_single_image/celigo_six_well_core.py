@@ -7,6 +7,8 @@ import subprocess
 
 from aics_pipeline_uploaders import CeligoUploader
 from jinja2 import Environment, PackageLoader
+from lkaccess import LabKey
+import lkaccess.contexts
 import pandas as pd
 
 from .. import pipelines
@@ -20,7 +22,7 @@ class CeligoSixWellCore(CeligoImage):
 
     """
 
-    def __init__(self, raw_image_path: str) -> None:
+    def __init__(self, raw_image_path: str, env: str = "stg") -> None:
         """Constructor.
 
         Parameters
@@ -32,6 +34,12 @@ class CeligoSixWellCore(CeligoImage):
 
         # Directory Name, used to create working directory.
         self.tempdirname = Path(raw_image_path).with_suffix("").name
+        if env == "prod":
+            self.lk = LabKey(server_context=lkaccess.contexts.PROD)
+        elif env == "stg":
+            self.lk = LabKey(server_context=lkaccess.contexts.STAGE)
+        else:
+            raise Exception("Not a valid env. Must be [prod, stg]")
 
         # Working Directory Creation
         if not os.path.exists(
@@ -254,5 +262,14 @@ class CeligoSixWellCore(CeligoImage):
         result = ImageDATA.drop(columns=["ImageNumber"])
 
         add_to_table(conn, result, table)
+
+        row = {
+            "WellId": celigo_image.well_id,
+            "ScanTime": celigo_image.datetime,
+            "Confluency": ImageDATA["AreaOccupied_AreaOccupied_Colony"].mean()
+            / ImageDATA["AreaOccupied_AreaOccupied_WellObjects"].mean(),
+        }
+
+        self.lk.insert_rows("assayscustom", "HamiltonWellConfluency", rows=[row])
 
         return self.raw_image_path.name

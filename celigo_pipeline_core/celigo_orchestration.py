@@ -32,7 +32,7 @@ def run_all(
     raw_image_path: str,
     env: str = "stg",
     env_vars: str = f"/home/{pwd.getpwuid(os.getuid())[0]}/.env",
-    export_location: str = "",
+    export_location_path: str = "/allen/aics/microscopy/brian_whitney/temp_output",
 ):
     """Process Celigo Images from `raw_image_path`. Submits jobs for Image Downsampling,
     Image Ilastik Processing, and Image Celigo Processing. After job completion,
@@ -52,6 +52,10 @@ def run_all(
     if not os.path.exists(raw_image_path):
         raise FileNotFoundError(f"{raw_image_path} does not exist!")
     raw_image = Path(raw_image_path)
+
+    if not os.path.exists(export_location_path):
+        raise FileNotFoundError(f"{export_location_path} does not exist!")
+    export_location = Path(export_location_path)
 
     load_dotenv(env_vars)
 
@@ -114,37 +118,33 @@ def run_all(
         index = image.upload_metrics(conn, table)
 
         # Copy files off isilon for off cluster upload
-        if export_location != "":
-            shutil.copyfile(
-                ilastik_output_file_path,
-                Path(export_location) / ilastik_output_file_path.name,
-            )
-            shutil.copyfile(
-                cellprofiler_output_file_paths[0],
-                Path(export_location) / cellprofiler_output_file_paths[0].name,
-            )
-            print("Export Complete")
+        shutil.copyfile(
+            ilastik_output_file_path,
+            export_location / ilastik_output_file_path.name,
+        )
+        shutil.copyfile(
+            cellprofiler_output_file_paths[0],
+            export_location / cellprofiler_output_file_paths[0].name,
+        )
 
         # Cleans temporary files from slurm node
         image.cleanup()
 
-        if export_location != "":
-            fms_IDs = upload(
-                raw_image_path=Path(raw_image_path),
-                probabilities_image_path=Path(export_location)
-                / ilastik_output_file_path.name,
-                outlines_image_path=Path(export_location)
-                / cellprofiler_output_file_paths[0].name,
-                env=env,
-            )
+        fms_IDs = upload(
+            raw_image_path=raw_image,
+            probabilities_image_path=export_location / ilastik_output_file_path.name,
+            outlines_image_path=export_location
+            / cellprofiler_output_file_paths[0].name,
+            env=env,
+        )
 
-            # Add FMS ID's from uploaded files to postgres database
-            add_FMS_IDs_to_SQL_table(
-                metadata=fms_IDs,
-                conn=conn,
-                index=index,
-                table=table,
-            )
+        # Add FMS ID's from uploaded files to postgres database
+        add_FMS_IDs_to_SQL_table(
+            metadata=fms_IDs,
+            conn=conn,
+            index=index,
+            table=table,
+        )
 
         status = "Complete"  # this wont be needed if we check after each task
 
@@ -323,8 +323,13 @@ def upload(
         outlines_image_path, outlines_file_type, env=env
     ).upload()
 
-    # os.remove(probabilities_image_path)  # this should be in a try
-    # os.remove(outlines_image_path)
+    if (
+        str(probabilities_image_path.parent)
+        == "/allen/aics/microscopy/brian_whitney/temp_output"
+    ):
+        os.remove(probabilities_image_path)
+        os.remove(outlines_image_path)
+
     return metadata
 
 

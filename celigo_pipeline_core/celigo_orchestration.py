@@ -343,7 +343,7 @@ def run_all_dir(
     chunk_size: int = 30,
     env: str = "stg",
     env_vars: str = f"/home/{pwd.getpwuid(os.getuid())[0]}/.env",
-    export_location: str = "",
+    export_location_path: str = "/allen/aics/microscopy/brian_whitney/temp_output",
 ):
 
     processes = []
@@ -355,7 +355,7 @@ def run_all_dir(
                 if "350000" in file and "escale" not in file:
                     path = f"{subdir}/{file}"
                     p = multiprocessing.Process(
-                        target=run_all, args=[path, env, env_vars, export_location]
+                        target=run_all, args=[path, env, env_vars, export_location_path]
                     )
                     p.start()
                     processes.append(p)

@@ -33,7 +33,7 @@ lint:
 .PHONY: lint
 
 type-check:
-> $(PYTHON) -m mypy --ignore-missing-imports celigo_pipeline_core
+> $(PYTHON) -m mypy --ignore-missing-imports  celigo_pipeline_core
 .PHONY: type-check
 
 fmt:

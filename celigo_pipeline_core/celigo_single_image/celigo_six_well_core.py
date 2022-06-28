@@ -7,6 +7,8 @@ import subprocess
 
 from aics_pipeline_uploaders import CeligoUploader
 from jinja2 import Environment, PackageLoader
+from lkaccess import LabKey
+import lkaccess.contexts
 import pandas as pd
 
 from .. import pipelines
@@ -14,13 +16,13 @@ from ..postgres_db_functions import add_to_table
 from .celigo_image import CeligoImage
 
 
-class CeligoSingleImageCore(CeligoImage):
+class CeligoSixWellCore(CeligoImage):
     """This Class provides utility functions for the Celigo
     pipeline to prepare single celigo images.
 
     """
 
-    def __init__(self, raw_image_path: str) -> None:
+    def __init__(self, raw_image_path: str, env: str = "stg") -> None:
         """Constructor.
 
         Parameters
@@ -32,6 +34,12 @@ class CeligoSingleImageCore(CeligoImage):
 
         # Directory Name, used to create working directory.
         self.tempdirname = Path(raw_image_path).with_suffix("").name
+        if env == "prod":
+            self.lk = LabKey(server_context=lkaccess.contexts.PROD)
+        elif env == "stg":
+            self.lk = LabKey(server_context=lkaccess.contexts.STAGE)
+        else:
+            raise Exception("Not a valid env. Must be [prod, stg]")
 
         # Working Directory Creation
         if not os.path.exists(
@@ -50,28 +58,14 @@ class CeligoSingleImageCore(CeligoImage):
         self.image_path = Path(f"{self.working_dir}/{self.raw_image_path.name}")
 
         # Creating pipeline paths for templates
-        with pkg_resources.path(pipelines, "rescale_pipeline.cppipe") as p:
+        with pkg_resources.path(
+            pipelines, "6_well_rescaleandcrop_cellprofilerpipeline_v2.0.cppipe"
+        ) as p:
             self.rescale_pipeline_path = p
-        with pkg_resources.path(pipelines, "colonymorphology.model") as p:
-            self.classification_model_path = p
-
-        # Creating template for 96 well processing
-        script_config = {
-            "classifier_path": str(self.classification_model_path.parent),
-        }
-        jinja_env = Environment(
-            loader=PackageLoader(
-                package_name="celigo_pipeline_core", package_path="templates"
-            )
-        )
-        script_body = jinja_env.get_template("96_well_pipeline_v2_tempalate.j2").render(
-            script_config
-        )
-        with open(self.working_dir / "96_well_colony_pipeline_v2.cppipe", "w+") as rsh:
-            rsh.write(script_body)
-        self.cellprofiler_pipeline_path = (
-            self.working_dir / "96_well_colony_pipeline_v2.cppipe"
-        )
+        with pkg_resources.path(
+            pipelines, "6_well_confluency_cellprofilerpipeline_v2.0.cppipe"
+        ) as p:
+            self.cellprofiler_pipeline_path = p
 
     def downsample(self):
         """downsample raw images for higher processing speed and streamlining of
@@ -91,7 +85,7 @@ class CeligoSingleImageCore(CeligoImage):
 
         # Defines variables for bash script
         script_config = {
-            "memory": "6G",
+            "memory": "80G",
             "filelist_path": str(self.resize_filelist_path),
             "output_path": str(self.working_dir),
             "pipeline_path": str(self.rescale_pipeline_path),
@@ -121,7 +115,7 @@ class CeligoSingleImageCore(CeligoImage):
         # Sets path to resized image to image path for future use
         self.image_path = (
             self.image_path.parent
-            / f"{self.image_path.with_suffix('').name}_rescale.tiff"
+            / f"{self.image_path.with_suffix('').name}_RescaleAndCrop.tiff"
         )
 
         job_ID = int(output.stdout.decode("utf-8").split(" ")[-1][:-1])
@@ -140,9 +134,9 @@ class CeligoSingleImageCore(CeligoImage):
 
         # Parameters to input to bash script template
         script_config = {
-            "memory": "12G",
+            "memory": "60G",
             "image_path": f"'{str( self.image_path)}'",
-            "output_path": f"'{str(self.image_path.with_suffix(''))}_probabilities.tiff'",
+            "output_path": f"'{str(self.image_path.with_suffix(''))}_Probabilities.tiff'",
         }
 
         # Generates script for SLURM submission from templates.
@@ -151,7 +145,7 @@ class CeligoSingleImageCore(CeligoImage):
                 package_name="celigo_pipeline_core", package_path="templates"
             )
         )
-        script_body = jinja_env.get_template("ilastik_template.j2").render(
+        script_body = jinja_env.get_template("6_well_ilastik_template.j2").render(
             script_config
         )
         with open(self.working_dir / "ilastik.sh", "w+") as rsh:
@@ -167,11 +161,11 @@ class CeligoSingleImageCore(CeligoImage):
         # Creates filelist.txt
         with open(self.working_dir / "filelist.txt", "w+") as rfl:
             rfl.write(str(self.image_path) + "\n")
-            rfl.write(str(self.image_path.with_suffix("")) + "_probabilities.tiff")
+            rfl.write(str(self.image_path.with_suffix("")) + "_Probabilities.tiff")
 
         self.filelist_path = self.working_dir / "filelist.txt"
         job_ID = int(output.stdout.decode("utf-8").split(" ")[-1][:-1])
-        return job_ID, Path(f"{self.image_path.with_suffix('')}_probabilities.tiff")
+        return job_ID, Path(f"{self.image_path.with_suffix('')}_Probabilities.tiff")
 
     def run_cellprofiler(self):
         """Applies the Cell Profiler Pipeline processing to the downsampled image using the Ilastik
@@ -189,7 +183,7 @@ class CeligoSingleImageCore(CeligoImage):
             "filelist_path": str(self.filelist_path),
             "output_dir": str(self.working_dir / "cell_profiler_outputs"),
             "pipeline_path": str(self.cellprofiler_pipeline_path),
-            "memory": "12G",
+            "memory": "50G",
         }
 
         # Generates script for SLURM submission from templates.
@@ -198,9 +192,11 @@ class CeligoSingleImageCore(CeligoImage):
                 package_name="celigo_pipeline_core", package_path="templates"
             )
         )
+
         script_body = jinja_env.get_template("cellprofiler_template.j2").render(
             script_config
         )
+
         with open(self.working_dir / "cellprofiler.sh", "w+") as rsh:
             rsh.write(script_body)
 
@@ -223,11 +219,7 @@ class CeligoSingleImageCore(CeligoImage):
                 Path(
                     f"{script_config['output_dir']}/{self.image_path.with_suffix('').name}_outlines.png"
                 ),
-                Path(f"{script_config['output_dir']}/ColonyDATA.csv"),
                 Path(f"{script_config['output_dir']}/ImageDATA.csv"),
-                Path(
-                    f"{script_config['output_dir']}/PoorMorphObjectDATA.csv"
-                ),  # These will eventually have to be modular
             ],
         )
 
@@ -251,27 +243,33 @@ class CeligoSingleImageCore(CeligoImage):
             future in order to insert additional metrics.
         """
         celigo_image = CeligoUploader(self.raw_image_path, file_type="temp")
-        metadata = celigo_image.metadata["microscopy"]
+        self.metadata = celigo_image.metadata["microscopy"]
 
         # Building Metric Output from Cellprofiler outputs
-        ColonyDATA = pd.read_csv(self.cell_profiler_output_path / "ColonyDATA.csv")
         ImageDATA = pd.read_csv(self.cell_profiler_output_path / "ImageDATA.csv")
 
         # formatting
-        ColonyDATA = ColonyDATA[
-            ColonyDATA.columns.drop(list(ColonyDATA.filter(regex="Metadata")))
-        ]
-        ColonyDATA["Metadata_DateString"] = (
-            metadata["celigo"]["scan_date"] + " " + metadata["celigo"]["scan_time"]
+        ImageDATA["Metadata_DateString"] = (
+            self.metadata["celigo"]["scan_date"]
+            + " "
+            + self.metadata["celigo"]["scan_time"]
         )
-        ColonyDATA["barcode"] = metadata["plate_barcode"]
-        ColonyDATA["Metadata_Well"] = celigo_image.well
-        ColonyDATA["Experiment ID"] = self.raw_image_path.name
-        ColonyDATA["row"] = int(celigo_image.row) - 1
-        ColonyDATA["col"] = int(celigo_image.col) - 1
-        result = pd.merge(ColonyDATA, ImageDATA, how="left", on="ImageNumber")
-        result = result.drop(columns=["ImageNumber"])
+        ImageDATA["barcode"] = self.metadata["plate_barcode"]
+        ImageDATA["Metadata_Well"] = celigo_image.well
+        ImageDATA["Experiment ID"] = self.raw_image_path.name
+        ImageDATA["row"] = int(celigo_image.row) - 1
+        ImageDATA["col"] = int(celigo_image.col) - 1
+        result = ImageDATA.drop(columns=["ImageNumber"])
 
         add_to_table(conn, result, table)
+
+        row = {
+            "WellId": celigo_image.well_id,
+            "ScanTime": celigo_image.datetime,
+            "Confluency": ImageDATA["AreaOccupied_AreaOccupied_Colony"].mean()
+            / ImageDATA["AreaOccupied_AreaOccupied_WellObjects"].mean(),
+        }
+
+        self.lk.insert_rows("assayscustom", "HamiltonWellConfluency", rows=[row])
 
         return self.raw_image_path.name

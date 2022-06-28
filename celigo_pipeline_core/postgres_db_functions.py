@@ -11,6 +11,7 @@ def add_FMS_IDs_to_SQL_table(
     metadata: dict,
     conn,
     index: str,
+    table: str,
 ):
     """Provides wrapped process for Insertion of FMS IDS into Postgres Database. Throughout the Celigo pipeline there are a few files
     We want to preserve in FMS, after upload these files FMS ID's are recorded in the Microscopy DB.
@@ -39,7 +40,7 @@ def add_FMS_IDs_to_SQL_table(
     cursor = conn.cursor()
     # Submit Queries
     for key in metadata:
-        query = f'UPDATE {os.getenv("CELIGO_METRICS_DB")} SET "{key}" = %s WHERE "Experiment ID" = %s;'
+        query = f'UPDATE {table} SET "{key}" = %s WHERE "Experiment ID" = %s;'
         try:
             cursor.execute(query, (metadata[key], index))
             conn.commit()

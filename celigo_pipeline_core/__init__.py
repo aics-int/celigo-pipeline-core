@@ -13,9 +13,16 @@ from .celigo_orchestration import (
     job_complete_check,
     job_in_queue_check,
     run_all,
+    run_all_dir,
+)
+from .celigo_single_image.celigo_image import (
+    CeligoImage,
 )
 from .celigo_single_image.celigo_single_image_core import (
     CeligoSingleImageCore,
+)
+from .celigo_single_image.celigo_six_well_core import (
+    CeligoSixWellCore,
 )
 from .notifcations import (
     get_channel_emails,

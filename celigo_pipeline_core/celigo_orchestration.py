@@ -15,7 +15,9 @@ import pandas as pd
 import psycopg2
 
 from .celigo_single_image import (
+    CeligoImage,
     CeligoSingleImageCore,
+    CeligoSixWellCore,
 )
 from .notifcations import (
     send_slack_notification_on_failure,
@@ -28,6 +30,9 @@ from .postgres_db_functions import (
 
 def run_all(
     raw_image_path: str,
+    env: str = "stg",
+    env_vars: str = f"/home/{pwd.getpwuid(os.getuid())[0]}/.env",
+    export_location_path: str = "/allen/aics/microscopy/brian_whitney/temp_output",
 ):
     """Process Celigo Images from `raw_image_path`. Submits jobs for Image Downsampling,
     Image Ilastik Processing, and Image Celigo Processing. After job completion,
@@ -46,39 +51,59 @@ def run_all(
     # Check if path is real
     if not os.path.exists(raw_image_path):
         raise FileNotFoundError(f"{raw_image_path} does not exist!")
-
-    env = f"/home/{pwd.getpwuid(os.getuid())[0]}/.env"
-    image = CeligoSingleImageCore(raw_image_path)
     raw_image = Path(raw_image_path)
-    upload_location = raw_image.parent
-    status = "Running"
 
-    load_dotenv(env)
+    if not os.path.exists(export_location_path):
+        raise FileNotFoundError(f"{export_location_path} does not exist!")
+    export_location = Path(export_location_path)
 
-    env_vars = [
-        os.getenv("MICROSCOPY_DB"),
-        os.getenv("MICROSCOPY_DB_USER"),
-        os.getenv("MICROSCOPY_DB_PASSWORD"),
-        os.getenv("MICROSCOPY_DB_HOST"),
-        os.getenv("MICROSCOPY_DB_PORT"),
-        os.getenv("CELIGO_SLACK_TOKEN"),
-        os.getenv("CELIGO_METRICS_DB"),
-        os.getenv("CELIGO_STATUS_DB"),
-        os.getenv("CELIGO_CHANNEL_NAME"),
-    ]
+    load_dotenv(env_vars)
 
-    if any(env_vars) == "None":
+    if (
+        any(
+            [
+                os.getenv("MICROSCOPY_DB"),
+                os.getenv("MICROSCOPY_DB_USER"),
+                os.getenv("MICROSCOPY_DB_PASSWORD"),
+                os.getenv("MICROSCOPY_DB_HOST"),
+                os.getenv("MICROSCOPY_DB_PORT"),
+                os.getenv("CELIGO_SLACK_TOKEN"),
+                os.getenv("CELIGO_METRICS_DB"),
+                os.getenv("CELIGO_STATUS_DB"),
+                os.getenv("CELIGO_CHANNEL_NAME"),
+            ]
+        )
+        == "None"
+    ):
         raise EnvironmentError(
             "Environment variables were not loaded correctly. Try adding 'load_dotenv(find_dotenv())' to your script"
         )
 
-    conn = psycopg2.connect(
-        database=os.getenv("MICROSCOPY_DB"),
-        user=os.getenv("MICROSCOPY_DB_USER"),
-        password=os.getenv("MICROSCOPY_DB_PASSWORD"),
-        host=os.getenv("MICROSCOPY_DB_HOST"),
-        port=os.getenv("MICROSCOPY_DB_PORT"),
-    )
+    if os.path.getsize(raw_image_path) > 100000000:
+        image = CeligoSixWellCore(
+            raw_image_path=raw_image_path, env=env
+        )  # type: CeligoImage
+        table = str(os.getenv("CELIGO_6_WELL_METRICS_DB"))
+        print("6 Well")
+    else:
+        image = CeligoSingleImageCore(raw_image_path=raw_image_path)
+        table = str(os.getenv("CELIGO_METRICS_DB"))
+        print("96 Well")
+
+    status = "Running"
+
+    try:
+        conn = psycopg2.connect(
+            database=os.getenv("MICROSCOPY_DB"),
+            user=os.getenv("MICROSCOPY_DB_USER"),
+            password=os.getenv("MICROSCOPY_DB_PASSWORD"),
+            host=os.getenv("MICROSCOPY_DB_HOST"),
+            port=os.getenv("MICROSCOPY_DB_PORT"),
+        )
+    except Exception as e:
+        print("Connection Error: " + str(e))
+
+    status = "Running"
 
     try:
         job_ID, downsample_output_file_path = image.downsample()
@@ -90,28 +115,27 @@ def run_all(
             job_ID, cellprofiler_output_file_paths, "cell profiler"
         )  # add to status loop return Status
 
-        index = image.upload_metrics(conn, str(os.getenv("CELIGO_METRICS_DB")))
+        index = image.upload_metrics(conn, table)
 
         # Copy files off isilon for off cluster upload
         shutil.copyfile(
             ilastik_output_file_path,
-            upload_location / ilastik_output_file_path.name,
+            export_location / ilastik_output_file_path.name,
         )
         shutil.copyfile(
             cellprofiler_output_file_paths[0],
-            upload_location / cellprofiler_output_file_paths[0].name,
+            export_location / cellprofiler_output_file_paths[0].name,
         )
 
         # Cleans temporary files from slurm node
         image.cleanup()
 
-        # Upload IMG, Probababilities, Outlines to FMS
-        print("uploading")
         fms_IDs = upload(
-            raw_image_path=Path(raw_image_path),
-            probabilities_image_path=upload_location / ilastik_output_file_path.name,
-            outlines_image_path=upload_location
+            raw_image_path=raw_image,
+            probabilities_image_path=export_location / ilastik_output_file_path.name,
+            outlines_image_path=export_location
             / cellprofiler_output_file_paths[0].name,
+            env=env,
         )
 
         # Add FMS ID's from uploaded files to postgres database
@@ -119,6 +143,7 @@ def run_all(
             metadata=fms_IDs,
             conn=conn,
             index=index,
+            table=table,
         )
 
         status = "Complete"  # this wont be needed if we check after each task
@@ -128,7 +153,7 @@ def run_all(
         error, status = e, "Failed"
         send_slack_notification_on_failure(file_name=raw_image.name, error=str(error))
         image.cleanup()  # This needs an if exists
-        print(error)
+        print("Error: " + str(error))
 
     now = datetime.now()
     current_time = now.strftime("%H:%M:%S")
@@ -210,7 +235,7 @@ def job_complete_check(
             # the job is no longer in the queue. Then the next logic statements come
             # into play to determine if the run was sucessful
 
-        elif not all([os.path.isfile(f) for f in filelist]) and count > 200:
+        elif not all([os.path.isfile(f) for f in filelist]) and count > 1000:
             # This logic is only reached if the process ran and is no longer in the queue
             # Counts to 600 to wait and see if the output file gets created. If it doesnt then
             # prints that the job has failed and breaks out of the loop.
@@ -252,6 +277,7 @@ def upload(
     raw_image_path: pathlib.Path,
     probabilities_image_path: pathlib.Path,
     outlines_image_path: pathlib.Path,
+    env: str = "stg",
 ) -> dict:
 
     """Provides wrapped process for FMS upload. Throughout the Celigo pipeline there are a few files
@@ -286,18 +312,24 @@ def upload(
 
     metadata = {}
 
-    metadata["RawCeligoFMSId"] = CeligoUploader(raw_image_path, raw_file_type).upload()
+    metadata["RawCeligoFMSId"] = CeligoUploader(
+        raw_image_path, raw_file_type, env=env
+    ).upload()
 
     metadata["ProbabilitiesMapFMSId"] = CeligoUploader(
-        probabilities_image_path, probabilities_file_type
+        probabilities_image_path, probabilities_file_type, env=env
     ).upload()
-
     metadata["OutlinesFMSId"] = CeligoUploader(
-        outlines_image_path, outlines_file_type
+        outlines_image_path, outlines_file_type, env=env
     ).upload()
 
-    os.remove(probabilities_image_path)  # this should be in a try
-    os.remove(outlines_image_path)
+    if (
+        str(probabilities_image_path.parent)
+        == "/allen/aics/microscopy/brian_whitney/temp_output"
+    ):
+        os.remove(probabilities_image_path)
+        os.remove(outlines_image_path)
+
     return metadata
 
 
@@ -306,16 +338,25 @@ def split(list_a, chunk_size):
         yield list_a[i : i + chunk_size]
 
 
-def run_all_dir(dir_path: str, chunk_size: int = 30):
+def run_all_dir(
+    dir_path: str,
+    chunk_size: int = 30,
+    env: str = "stg",
+    env_vars: str = f"/home/{pwd.getpwuid(os.getuid())[0]}/.env",
+    export_location_path: str = "/allen/aics/microscopy/brian_whitney/temp_output",
+):
+
     processes = []
     start = time.perf_counter()
 
     for subdir, _, files in os.walk(dir_path):
         for files in list(split(files, chunk_size)):
             for file in files:
-                if "350000" in file:
+                if "350000" in file and "escale" not in file:
                     path = f"{subdir}/{file}"
-                    p = multiprocessing.Process(target=run_all, args=[path])
+                    p = multiprocessing.Process(
+                        target=run_all, args=[path, env, env_vars, export_location_path]
+                    )
                     p.start()
                     processes.append(p)
                 else:

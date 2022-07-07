@@ -1,7 +1,8 @@
 from datetime import date
 import os
+import pwd
 
-from dotenv import find_dotenv, load_dotenv
+from dotenv import load_dotenv
 import pandas as pd
 import psycopg2
 import psycopg2.extras as extras
@@ -26,17 +27,16 @@ def add_FMS_IDs_to_SQL_table(
     ----------
     metadata: dict
         List of metadata in form [KEY] : [VALUE] to be inserted into database.
-    postgres_password : str
-        Password used to access Microscopy DB. (Contact Brian Whitney, Aditya Nath, Tyler Foster)
+    conn
+        A psycopg2 database connection.
     index : str
         index defines the rows that the FMS ID's will be inserted into. In most cases this will be the Experiment ID,
         which is just the original filename.
-    table: str = TABLE_NAME
+    table: str
         Name of table in Postgres Database intended for import. Default is chosen by DEVS given current DB status
     """
 
     # Connect to DB
-    load_dotenv(find_dotenv())
     cursor = conn.cursor()
     # Submit Queries
     for key in metadata:
@@ -54,8 +54,7 @@ def add_FMS_IDs_to_SQL_table(
 
 
 def add_to_table(conn, metadata: pd.DataFrame, table: str):
-    """A companion function for upload_metrics. This function provides the utility to insert
-    metrics.
+    """A function to insert a dateframe into a postgres database.
 
     Parameters
     ----------
@@ -64,7 +63,7 @@ def add_to_table(conn, metadata: pd.DataFrame, table: str):
     metadata : pd.DataFrame
         The intended data to be inserted. This table is usually formatted
         by the upload_metrics funciton.
-    postgres_table : str
+    table : str
         The specific table you wish to insert metrics into. The table name
         needs to be within quotes inside the string in order to be processed
         correctly by the database.
@@ -88,15 +87,27 @@ def add_to_table(conn, metadata: pd.DataFrame, table: str):
     cursor.close()
 
 
-def get_report_data(date: date):
-    load_dotenv(find_dotenv())
-    conn = psycopg2.connect(
-        database=os.getenv("MICROSCOPY_DB"),
-        user=os.getenv("MICROSCOPY_DB_USER"),
-        password=os.getenv("MICROSCOPY_DB_PASSWORD"),
-        host=os.getenv("MICROSCOPY_DB_HOST"),
-        port=os.getenv("MICROSCOPY_DB_PORT"),
-    )
+def get_report_data(
+    date: date,
+    conn,
+    env_vars: str = f"/home/{pwd.getpwuid(os.getuid())[0]}/.env",
+):
+    """A function to get celigo status data for a given day.
+
+    Parameters
+    ----------
+    date : date
+        The specific date to produce a report about.
+    conn
+        A psycopg2 database connection.
+
+    table : str
+        The specific table you wish to insert metrics into. The table name
+        needs to be within quotes inside the string in order to be processed
+        correctly by the database.
+    """
+    load_dotenv(env_vars)
+
     cursor = conn.cursor()
     query = f'select * from {os.getenv("CELIGO_STATUS_DB")} where "Date" = %s'
     cursor.execute(query, (str(date),))
@@ -112,6 +123,6 @@ def get_report_data(date: date):
         data.append(info)
 
     daily_run_data = pd.DataFrame(data)
-    filename = f"celigo_daily_log {date.today()}.csv"
+    filename = f"celigo_daily_log {date}.csv"
 
     return filename, daily_run_data

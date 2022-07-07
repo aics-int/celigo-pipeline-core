@@ -34,31 +34,36 @@ def run_all(
     env_vars: str = f"/home/{pwd.getpwuid(os.getuid())[0]}/.env",
     export_location_path: str = "/allen/aics/microscopy/brian_whitney/temp_output",
 ):
-    """Process Celigo Images from `raw_image_path`. Submits jobs for Image Downsampling,
+    """Process Celigo Image from `raw_image_path`. Submits jobs for Image Downsampling,
     Image Ilastik Processing, and Image Celigo Processing. After job completion,
     Image Metrics are uploaded to an external database.
 
     Parameters
     ----------
-    raw_image_path : pathlib.Path
+    raw_image_path : str
         Path must point to a .Tiff image produced by the Celigo camera. Path must be accessable
         from SLURM (ISILON[OK])
-
-    postgres_password : str
-        Password used to access Microscopy DB. (Contact Brian Whitney, Aditya Nath, Tyler Foster)
-
+    env: str
+        The Allen institute environment you wish to submit your uploads to. Default is set to `stg` (Staging).
+    env_vars: str
+        Path to a .env file containing database credentials. Default is set to users home directory.
+    export_location_path: str
+        If the user wants to export the output files of the pipeline they can specify a output directory here.
     """
-    # Check if path is real
+
+    # Check if image path exists
     if not os.path.exists(raw_image_path):
         raise FileNotFoundError(f"{raw_image_path} does not exist!")
     raw_image = Path(raw_image_path)
 
+    # Check if export path exists
     if not os.path.exists(export_location_path):
         raise FileNotFoundError(f"{export_location_path} does not exist!")
     export_location = Path(export_location_path)
 
     load_dotenv(env_vars)
 
+    # Check that all variables from .env are  present
     if (
         any(
             [
@@ -79,6 +84,7 @@ def run_all(
             "Environment variables were not loaded correctly. Try adding 'load_dotenv(find_dotenv())' to your script"
         )
 
+    # Determine if Image is 6 well or 96 well
     if os.path.getsize(raw_image_path) > 100000000:
         image = CeligoSixWellCore(
             raw_image_path=raw_image_path, env=env
@@ -90,9 +96,8 @@ def run_all(
         table = str(os.getenv("CELIGO_METRICS_DB"))
         print("96 Well")
 
-    status = "Running"
-
     try:
+        # Establish connection to database
         conn = psycopg2.connect(
             database=os.getenv("MICROSCOPY_DB"),
             user=os.getenv("MICROSCOPY_DB_USER"),
@@ -103,6 +108,7 @@ def run_all(
     except Exception as e:
         print("Connection Error: " + str(e))
 
+    # Starting process
     status = "Running"
 
     try:
@@ -111,10 +117,9 @@ def run_all(
         job_ID, ilastik_output_file_path = image.run_ilastik()
         job_complete_check(job_ID, [ilastik_output_file_path], "ilastik")
         job_ID, cellprofiler_output_file_paths = image.run_cellprofiler()
-        job_complete_check(
-            job_ID, cellprofiler_output_file_paths, "cell profiler"
-        )  # add to status loop return Status
+        job_complete_check(job_ID, cellprofiler_output_file_paths, "cell profiler")
 
+        # Upload metrics from pipeline
         index = image.upload_metrics(conn, table)
 
         # Copy files off isilon for off cluster upload
@@ -130,6 +135,7 @@ def run_all(
         # Cleans temporary files from slurm node
         image.cleanup()
 
+        # Upload produced files to FMS
         fms_IDs = upload(
             raw_image_path=raw_image,
             probabilities_image_path=export_location / ilastik_output_file_path.name,
@@ -149,15 +155,17 @@ def run_all(
         status = "Complete"  # this wont be needed if we check after each task
 
     except Exception as e:
-        print("is broke")
-        error, status = e, "Failed"
-        send_slack_notification_on_failure(file_name=raw_image.name, error=str(error))
-        image.cleanup()  # This needs an if exists
+        status, error = "Failed", e
+        send_slack_notification_on_failure(
+            file_name=raw_image.name, error=str(error), env_vars=env_vars
+        )
+        image.cleanup()
         print("Error: " + str(error))
 
     now = datetime.now()
     current_time = now.strftime("%H:%M:%S")
 
+    # Generate status table from run
     submission = {
         "File Name": [raw_image.name],
         "Status": [status],
@@ -171,6 +179,8 @@ def run_all(
         submission["Error Code"] = [str(error)]
 
     row_data = pd.DataFrame.from_dict(submission)
+
+    # Add status metrics to table
     add_to_table(metadata=row_data, conn=conn, table=str(os.getenv("CELIGO_STATUS_DB")))
 
     print(status)
@@ -300,12 +310,14 @@ def upload(
     outlines_image_path: pathlib.Path
         Path to cellprofiler output (PNG). Set internally through `run_all`. Metadata is Created from the file
         name through `CeligoUploader`
+    env: str
+        The Allen institute environment you wish to submit your uploads to. Default is set to `stg` (Staging).
 
     Returns
     -------
-    metadata: dictionary of FMS IDS
+    metadata: dictionary of FMS ID'S
     """
-
+    # Image types
     raw_file_type = "Tiff Image"
     probabilities_file_type = "Probability Map"
     outlines_file_type = "Outline PNG"
@@ -319,10 +331,12 @@ def upload(
     metadata["ProbabilitiesMapFMSId"] = CeligoUploader(
         probabilities_image_path, probabilities_file_type, env=env
     ).upload()
+
     metadata["OutlinesFMSId"] = CeligoUploader(
         outlines_image_path, outlines_file_type, env=env
     ).upload()
 
+    # If no new output directory, remove files
     if (
         str(probabilities_image_path.parent)
         == "/allen/aics/microscopy/brian_whitney/temp_output"
@@ -333,11 +347,6 @@ def upload(
     return metadata
 
 
-def split(list_a, chunk_size):
-    for i in range(0, len(list_a), chunk_size):
-        yield list_a[i : i + chunk_size]
-
-
 def run_all_dir(
     dir_path: str,
     chunk_size: int = 30,
@@ -345,10 +354,29 @@ def run_all_dir(
     env_vars: str = f"/home/{pwd.getpwuid(os.getuid())[0]}/.env",
     export_location_path: str = "/allen/aics/microscopy/brian_whitney/temp_output",
 ):
+    """Process Celigo Images from a directory (`dir_path`) and all sub directories  in batches. Submits jobs for Images Downsampling,
+    Images Ilastik Processing, and Images Celigo Processing. After job completion,
+    Images Metrics are uploaded to an external database.
 
+    Parameters
+    ----------
+    dir_path : str
+        Path must point to a Directory. Path must be accessable
+        from SLURM (ISILON[OK])
+    chunk_size: int
+        Size of each Batch to run simultaniously. Default is set to 30. For 6 well it is reccomended that you
+        overwrite this number (3-5).
+    env: str
+        The Allen institute environment you wish to submit your uploads to. Default is set to `stg` (Staging).
+    env_vars: str
+        Path to a .env file containing database credentials. Default is set to users home directory.
+    export_location_path: str
+        If the user wants to export the output files of the pipeline they can specify a output directory here.
+    """
     processes = []
     start = time.perf_counter()
 
+    # loop through all files
     for subdir, _, files in os.walk(dir_path):
         for files in list(split(files, chunk_size)):
             for file in files:
@@ -368,3 +396,9 @@ def run_all_dir(
     finish = time.perf_counter()
 
     print(f"Finished in {round(finish-start,2)} second(s)")
+
+
+# Funciton for generating chunks from an array
+def split(list_a, chunk_size):
+    for i in range(0, len(list_a), chunk_size):
+        yield list_a[i : i + chunk_size]

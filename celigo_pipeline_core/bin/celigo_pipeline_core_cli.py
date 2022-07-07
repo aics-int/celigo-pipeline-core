@@ -1,5 +1,7 @@
 import argparse
 import logging
+import os
+import pwd
 import sys
 import traceback
 
@@ -48,6 +50,20 @@ class Args(argparse.Namespace):
             default="stg",
             required=False,
         )
+        p.add_argument(
+            "--env_vars",
+            type=str,
+            help="path to .env file",
+            default=f"/home/{pwd.getpwuid(os.getuid())[0]}/.env",
+            required=False,
+        )
+        p.add_argument(
+            "--export_location_path",
+            type=str,
+            help="folder location to export images to",
+            default="/allen/aics/microscopy/brian_whitney/temp_output",
+            required=False,
+        )
 
         p.parse_args(namespace=self)
 
@@ -61,6 +77,9 @@ def main():
     try:
         run_all(
             raw_image_path=args.image_path,
+            env=args.env,
+            env_vars=args.env_vars,
+            export_location_path=args.export_location_path,
         )
 
     except Exception as e:

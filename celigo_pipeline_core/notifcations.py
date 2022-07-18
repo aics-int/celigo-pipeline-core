@@ -5,6 +5,7 @@ import pwd
 
 from dotenv import load_dotenv
 from jinja2 import Environment, PackageLoader
+import psycopg2
 import slack
 
 from .postgres_db_functions import get_report_data
@@ -44,7 +45,6 @@ def send_slack_notification_on_failure(file_name: str, error: str, env_vars: str
 
 
 def slack_day_report(
-    conn,
     day: date = date.today(),
     env_vars: str = f"/home/{pwd.getpwuid(os.getuid())[0]}/.env",
 ):
@@ -62,7 +62,40 @@ def slack_day_report(
 
     """
     load_dotenv(env_vars)
-    filename, df = get_report_data(conn, day)
+
+    # Check that all variables from .env are  present
+    if (
+        any(
+            [
+                os.getenv("MICROSCOPY_DB"),
+                os.getenv("MICROSCOPY_DB_USER"),
+                os.getenv("MICROSCOPY_DB_PASSWORD"),
+                os.getenv("MICROSCOPY_DB_HOST"),
+                os.getenv("MICROSCOPY_DB_PORT"),
+                os.getenv("CELIGO_SLACK_TOKEN"),
+                os.getenv("CELIGO_METRICS_DB"),
+                os.getenv("CELIGO_STATUS_DB"),
+                os.getenv("CELIGO_CHANNEL_NAME"),
+            ]
+        )
+        == "None"
+    ):
+        raise EnvironmentError(
+            "Environment variables were not loaded correctly. Try adding 'load_dotenv(find_dotenv())' to your script"
+        )
+    try:
+        # Establish connection to database
+        conn = psycopg2.connect(
+            database=os.getenv("MICROSCOPY_DB"),
+            user=os.getenv("MICROSCOPY_DB_USER"),
+            password=os.getenv("MICROSCOPY_DB_PASSWORD"),
+            host=os.getenv("MICROSCOPY_DB_HOST"),
+            port=os.getenv("MICROSCOPY_DB_PORT"),
+        )
+    except Exception as e:
+        print("Connection Error: " + str(e))
+
+    filename, df = get_report_data(date=day, conn=conn)
     _ = df.to_csv(filename, index=False)
 
     script_config = {
